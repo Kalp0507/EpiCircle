@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +14,7 @@ import NewProduct from "./pages/NewProduct";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/layout/AuthGuard";
+import QuotesPage from "./pages/Quotes";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +38,7 @@ const App = () => (
                 </AuthGuard>
               } 
             />
+            <Route path="/quotes" element={<QuotesPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

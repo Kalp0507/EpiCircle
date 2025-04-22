@@ -5,8 +5,8 @@ import { User, UserRole } from "@/types";
 interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
+  signIn: (email: string, password: string, phone?: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -40,27 +40,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearTimeout(timer);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, phone?: string) => {
     // Mock sign in - would be replaced with actual Firebase auth
     setIsLoading(true);
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // For demo, we'll create sample users for each role
       let mockUser: User;
-      
+
       if (email.includes("customer")) {
-        mockUser = { id: "cust1", name: "Customer Demo", email, role: "customer" };
+        mockUser = { id: "cust1", name: "Customer Demo", email, role: "customer", phone };
       } else if (email.includes("vendor")) {
-        mockUser = { id: "vend1", name: "Vendor Demo", email, role: "vendor" };
+        mockUser = { id: "vend1", name: "Vendor Demo", email, role: "vendor", phone };
       } else if (email.includes("intern")) {
-        mockUser = { id: "int1", name: "Intern Demo", email, role: "intern" };
+        mockUser = { id: "int1", name: "Intern Demo", email, role: "intern", phone };
       } else {
         // Default to customer
-        mockUser = { id: "cust2", name: "Default Customer", email, role: "customer" };
+        mockUser = { id: "cust2", name: "Default Customer", email, role: "customer", phone };
       }
-      
+
       setCurrentUser(mockUser);
       localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
     } catch (error) {
@@ -71,20 +71,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, role: UserRole) => {
+  const signUp = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
     // Mock sign up - would be replaced with actual Firebase auth
     setIsLoading(true);
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const mockUser: User = {
         id: `user-${Date.now()}`,
         name,
         email,
         role,
+        phone,
       };
-      
+
       setCurrentUser(mockUser);
       localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
     } catch (error) {

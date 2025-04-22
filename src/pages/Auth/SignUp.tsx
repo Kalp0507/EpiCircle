@@ -9,6 +9,7 @@ export default function SignUp() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<UserRole>("customer");
@@ -19,9 +20,9 @@ export default function SignUp() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    
+
     try {
-      await signUp(email, password, name, role);
+      await signUp(email, password, name, role, phone); // Phone passed
       navigate("/dashboard");
     } catch (err) {
       setError("Failed to create account. Please try again.");
@@ -48,7 +49,7 @@ export default function SignUp() {
             </Link>
           </p>
         </div>
-        
+
         <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
@@ -74,7 +75,6 @@ export default function SignUp() {
                 />
               </div>
             </div>
-
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -92,7 +92,28 @@ export default function SignUp() {
                 />
               </div>
             </div>
-
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Phone number
+              </label>
+              <div className="mt-1">
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  pattern="[0-9+\s-]{7,15}"
+                  placeholder="e.g. +1234567890"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Enter a valid phone number for your account.
+              </p>
+            </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -110,7 +131,6 @@ export default function SignUp() {
                 />
               </div>
             </div>
-
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700">
                 Account type
@@ -129,7 +149,6 @@ export default function SignUp() {
                 </select>
               </div>
             </div>
-
             <div>
               <Button
                 type="submit"
