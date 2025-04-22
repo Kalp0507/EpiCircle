@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,18 +7,18 @@ import { useAuth } from "@/context/AuthContext";
 interface FormData {
   name: string;
   description: string;
+  customerPhone: string;
   images: string[];
   vendorIds: string[];
 }
 
 type Step = 'details' | 'images' | 'vendors' | 'review';
 
-// Mock vendors
 const mockVendors = [
-  { id: "vend1", name: "Vintage Valuers Ltd.", specialty: "Antique furniture and artwork" },
-  { id: "vend2", name: "Heritage Appraisals", specialty: "Jewelry and timepieces" },
-  { id: "vend3", name: "Collectibles Corner", specialty: "Coins, stamps, and memorabilia" },
-  { id: "vend4", name: "Retro Electronics", specialty: "Vintage electronics and gadgets" },
+  { id: "vend1", name: "Vintage Valuers Ltd.", specialty: "Antique furniture and artwork", phone: "+1 234-456-1011" },
+  { id: "vend2", name: "Heritage Appraisals", specialty: "Jewelry and timepieces", phone: "+1 234-456-1022" },
+  { id: "vend3", name: "Collectibles Corner", specialty: "Coins, stamps, and memorabilia", phone: "+1 234-456-1033" },
+  { id: "vend4", name: "Retro Electronics", specialty: "Vintage electronics and gadgets", phone: "+1 234-456-1044" },
 ];
 
 export default function NewProduct() {
@@ -27,20 +26,14 @@ export default function NewProduct() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
+    customerPhone: "",
     images: [],
     vendorIds: [],
   });
-  
-  // Mock placeholder images for demo
-  const placeholderImages = [
-    "https://placehold.co/400x300/E5DEFF/7E69AB?text=Product+Image+1",
-    "https://placehold.co/400x300/E5DEFF/7E69AB?text=Product+Image+2",
-    "https://placehold.co/400x300/E5DEFF/7E69AB?text=Product+Image+3",
-  ];
 
   const handleImageSelect = (imageUrl: string) => {
     if (formData.images.includes(imageUrl)) {
@@ -81,7 +74,6 @@ export default function NewProduct() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       console.log("Submitted product:", {
@@ -111,7 +103,6 @@ export default function NewProduct() {
     else if (currentStep === 'review') setCurrentStep('vendors');
   };
 
-  // Validate current step
   const isCurrentStepValid = () => {
     if (currentStep === 'details') {
       return formData.name.trim() !== '' && formData.description.trim() !== '';
@@ -123,9 +114,15 @@ export default function NewProduct() {
     return true;
   };
 
+  const placeholderImages = [
+    "https://placehold.co/400x300/E5DEFF/7E69AB?text=Product+Image+1",
+    "https://placehold.co/400x300/E5DEFF/7E69AB?text=Product+Image+2",
+    "https://placehold.co/400x300/E5DEFF/7E69AB?text=Product+Image+3",
+  ];
+
   return (
     <DashboardLayout>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto px-2 sm:px-4 lg:px-0">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Add New Product
@@ -134,42 +131,40 @@ export default function NewProduct() {
             Provide details about your product for vendor quotes
           </p>
         </div>
-        
-        {/* Progress Steps */}
+
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between">
             <div className="w-full flex items-center">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'details' || currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
                 1
               </div>
-              <div className={`h-1 flex-1 mx-2 ${currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
                 2
               </div>
-              <div className={`h-1 flex-1 mx-2 ${currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
                 3
               </div>
-              <div className={`h-1 flex-1 mx-2 ${currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
                 4
               </div>
             </div>
           </div>
-          <div className="flex justify-between mt-2 text-sm text-gray-600">
+          <div className="flex flex-wrap justify-between mt-2 text-sm text-gray-600 space-x-0">
             <span className={currentStep === 'details' ? 'text-purple font-medium' : ''}>Details</span>
             <span className={currentStep === 'images' ? 'text-purple font-medium' : ''}>Images</span>
             <span className={currentStep === 'vendors' ? 'text-purple font-medium' : ''}>Vendors</span>
             <span className={currentStep === 'review' ? 'text-purple font-medium' : ''}>Review</span>
           </div>
         </div>
-        
+
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="p-6">
-            {/* Step 1: Product Details */}
+          <div className="p-4 sm:p-6">
             {currentStep === 'details' && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Product Details</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Product Details</h2>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Product Name
@@ -180,7 +175,7 @@ export default function NewProduct() {
                     name="name"
                     value={formData.name}
                     onChange={handleDetailsChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple focus:border-purple"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple focus:border-purple text-base sm:text-sm"
                     placeholder="e.g., Vintage Silver Coffee Set"
                   />
                 </div>
@@ -194,31 +189,45 @@ export default function NewProduct() {
                     value={formData.description}
                     onChange={handleDetailsChange}
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple focus:border-purple"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple focus:border-purple text-base sm:text-sm"
                     placeholder="Provide details about the product, condition, history, etc."
                   ></textarea>
                 </div>
+                <div>
+                  <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="customerPhone"
+                    name="customerPhone"
+                    value={formData.customerPhone}
+                    onChange={handleDetailsChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple focus:border-purple text-base sm:text-sm"
+                    placeholder="e.g., +1 234-567-8910"
+                    pattern="^(?:\+?\d{1,3})?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$"
+                    required
+                  />
+                </div>
               </div>
             )}
-            
-            {/* Step 2: Product Images */}
+
             {currentStep === 'images' && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Product Images</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Product Images</h2>
                 <p className="text-gray-600 text-sm">Select images to help vendors provide accurate quotes. Choose at least one.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mt-4">
                   {placeholderImages.map((image, index) => (
-                    <div 
+                    <div
                       key={index}
-                      className={`relative cursor-pointer border-2 rounded-lg overflow-hidden ${
+                      className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all ${
                         formData.images.includes(image) ? 'border-purple' : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => handleImageSelect(image)}
                     >
-                      <img 
-                        src={image} 
-                        alt={`Product ${index + 1}`} 
+                      <img
+                        src={image}
+                        alt={`Product ${index + 1}`}
                         className="w-full h-40 object-cover"
                       />
                       {formData.images.includes(image) && (
@@ -231,7 +240,6 @@ export default function NewProduct() {
                     </div>
                   ))}
                 </div>
-                
                 <div className="flex items-center justify-center mt-6">
                   <div className="text-sm text-gray-500">
                     {formData.images.length} of {placeholderImages.length} selected
@@ -239,41 +247,37 @@ export default function NewProduct() {
                 </div>
               </div>
             )}
-            
-            {/* Step 3: Vendor Selection */}
+
             {currentStep === 'vendors' && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Select Vendors</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Select Vendors</h2>
                 <p className="text-gray-600 text-sm">Choose vendors to request quotes from. Select at least one.</p>
-                
                 <div className="space-y-4 mt-4">
                   {mockVendors.map((vendor) => (
-                    <div 
+                    <div
                       key={vendor.id}
-                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition-colors flex flex-col sm:flex-row sm:items-center justify-between ${
                         formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple-light' : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => handleVendorSelect(vendor.id)}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{vendor.name}</h3>
-                          <p className="text-sm text-gray-500">{vendor.specialty}</p>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border ${
-                          formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple' : 'border-gray-300'
-                        } flex items-center justify-center`}>
-                          {formData.vendorIds.includes(vendor.id) && (
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{vendor.name}</h3>
+                        <p className="text-xs sm:text-sm text-gray-500">{vendor.specialty}</p>
+                        <p className="text-xs text-gray-500 mt-1">Phone: <span className="font-medium">{vendor.phone}</span></p>
+                      </div>
+                      <div className={`mt-2 sm:mt-0 w-5 h-5 rounded-full border ${
+                        formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple' : 'border-gray-300'
+                      } flex items-center justify-center`}>
+                        {formData.vendorIds.includes(vendor.id) && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-                
                 <div className="flex items-center justify-center mt-6">
                   <div className="text-sm text-gray-500">
                     {formData.vendorIds.length} of {mockVendors.length} selected
@@ -281,46 +285,48 @@ export default function NewProduct() {
                 </div>
               </div>
             )}
-            
-            {/* Step 4: Review and Submit */}
+
             {currentStep === 'review' && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800">Review & Submit</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Review & Submit</h2>
                 <p className="text-gray-600 text-sm">Review your product details before submitting</p>
-                
                 <div className="rounded-md bg-gray-50 p-4">
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Product Name</h3>
                       <p className="mt-1 text-base text-gray-900">{formData.name}</p>
                     </div>
-                    
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Description</h3>
                       <p className="mt-1 text-base text-gray-900">{formData.description}</p>
                     </div>
-                    
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Customer Phone</h3>
+                      <p className="mt-1 text-base text-gray-900">{formData.customerPhone}</p>
+                    </div>
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Images</h3>
                       <div className="mt-2 flex space-x-2 overflow-x-auto py-2">
                         {formData.images.map((image, index) => (
-                          <img 
+                          <img
                             key={index}
-                            src={image} 
-                            alt={`Product ${index + 1}`} 
+                            src={image}
+                            alt={`Product ${index + 1}`}
                             className="h-20 w-20 object-cover rounded-md border border-gray-200"
                           />
                         ))}
                       </div>
                     </div>
-                    
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Selected Vendors</h3>
                       <ul className="mt-2 list-disc list-inside text-base text-gray-900">
                         {mockVendors
                           .filter(vendor => formData.vendorIds.includes(vendor.id))
                           .map(vendor => (
-                            <li key={vendor.id}>{vendor.name}</li>
+                            <li key={vendor.id}>
+                              <span className="font-medium">{vendor.name}</span>
+                              <span className="text-xs text-gray-500 ml-2">Phone: {vendor.phone}</span>
+                            </li>
                           ))
                         }
                       </ul>
@@ -330,30 +336,31 @@ export default function NewProduct() {
               </div>
             )}
           </div>
-          
-          {/* Navigation Buttons */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
+
+          <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-between gap-2">
             {currentStep !== 'details' ? (
-              <Button variant="outline" onClick={prevStep}>
+              <Button variant="outline" onClick={prevStep} className="w-full sm:w-auto">
                 Back
               </Button>
             ) : (
-              <div></div> // Empty div for spacing
+              <div aria-hidden className="hidden sm:block"></div>
             )}
-            
+
             {currentStep !== 'review' ? (
-              <Button 
-                variant="purple" 
+              <Button
+                variant="purple"
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                className="w-full sm:w-auto"
               >
                 Continue
               </Button>
             ) : (
-              <Button 
+              <Button
                 variant="purple"
                 disabled={isSubmitting}
                 onClick={handleSubmit}
+                className="w-full sm:w-auto"
               >
                 {isSubmitting ? "Submitting..." : "Submit Product"}
               </Button>
