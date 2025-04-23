@@ -14,11 +14,11 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  images: string[];
-  customerId: string;
+  imageURLs: string[];
+  customer_id: string;
   customerName: string;
-  vendorIds: string[];
-  createdAt: string;
+  vendor_ids: string[];
+  created_at: string;
 }
 
 export interface Quote {
