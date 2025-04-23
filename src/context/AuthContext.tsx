@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient"; // Update path if needed
 import { User, UserRole } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -8,17 +10,10 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  navigate: (path: string) => void;
 }
 
-const defaultContext: AuthContextType = {
-  currentUser: null,
-  isLoading: true,
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
-};
-
-const AuthContext = createContext<AuthContextType>(defaultContext);
+const AuthContext = createContext<AuthContextType>(null!);
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -94,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw err;
     } finally {
       setIsLoading(false);
+      throw error;
     }
   };
   
@@ -124,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    setIsLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -132,8 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Sign out error:", error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -143,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    navigate,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
