@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: profile.id,
               name: profile.name,
               email: profile.email,
-              role: profile.role,
+              role: profile.role as UserRole,  // Cast to UserRole type
               phone: profile.phone || undefined,
             });
           }
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: profile.id,
                 name: profile.name,
                 email: profile.email,
-                role: profile.role,
+                role: profile.role as UserRole,  // Cast to UserRole type
                 phone: profile.phone || undefined,
               });
             }
