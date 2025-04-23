@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,7 +39,14 @@ const App = () => (
                 </AuthGuard>
               } 
             />
-            <Route path="/quotes" element={<QuotesPage />} />
+            <Route 
+              path="/quotes" 
+              element={
+                <AuthGuard allowedRoles={["vendor"]}>
+                  <QuotesPage />
+                </AuthGuard>
+              } 
+            />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
