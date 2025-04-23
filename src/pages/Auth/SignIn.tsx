@@ -29,7 +29,7 @@ export default function SignIn() {
       // Pass selected role as an optional mock override (for demo purposes)
       console.log("Signing in with role:", role);
       await signIn(email, password, phone, role); 
-      // Note: Navigation is handled in the AuthContext.signIn method
+      // Navigation is handled in the AuthContext.signIn method
     } catch (err) {
       setError("Failed to sign in. Please check your credentials.");
       console.error(err);
@@ -95,7 +95,6 @@ export default function SignIn() {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  pattern="[0-9+\s-]{7,15}"
                   placeholder="e.g. +1234567890"
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
                 />

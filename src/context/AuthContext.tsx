@@ -22,10 +22,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // This is a navigation function that will be implemented by the consumer of this context
+  // This is a navigation function that will be overridden by useAuthNavigation
   const navigate = (path: string) => {
-    console.log("Navigating to:", path);
-    window.location.href = path;
+    console.log("Default navigating to:", path);
+    window.location.href = path; // Fallback for when React Router is not available
   };
 
   useEffect(() => {
@@ -89,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string, phone?: string, role?: string) => {
     setIsLoading(true);
     try {
+      // Try to sign in with Supabase
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -96,11 +97,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
-      // Mock user creation for demonstration purposes
+      // For demo purposes: Create a mock user if role is provided
       if (role) {
         console.log("Creating mock user with role:", role);
         
-        // Set a mock user in the state
+        // Create a mock user
         const mockUser = {
           id: "demo-user-id",
           name: email.split("@")[0],
@@ -112,11 +113,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(mockUser);
         console.log("Mock user created:", mockUser);
         
-        // Redirect to the dashboard - use a small timeout to ensure state is updated
+        // Use a more robust solution - first set state, then navigate after a small delay
         setTimeout(() => {
-          console.log("Redirecting to dashboard");
+          console.log("Redirecting to dashboard after delay");
           navigate("/dashboard");
-        }, 100);
+        }, 300);
+      } else {
+        // Normal flow - wait for auth state change to populate currentUser
+        console.log("Signed in successfully, waiting for auth state to update");
       }
     } catch (error: any) {
       toast({
@@ -151,7 +155,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Please check your email to verify your account."
       });
       
-      navigate("/signin");
+      // Use a more reliable navigation method
+      setTimeout(() => {
+        navigate("/signin");
+      }, 100);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -168,8 +175,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
       setCurrentUser(null);
-      navigate("/signin");
+      
+      // Use a more reliable navigation method
+      setTimeout(() => {
+        navigate("/signin");
+      }, 100);
     } catch (error: any) {
       toast({
         variant: "destructive",
