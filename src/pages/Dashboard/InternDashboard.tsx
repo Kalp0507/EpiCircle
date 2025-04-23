@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Product, Quote, User } from "@/types";
+import { Product, Quote, UserRole } from "@/types";
 
-// Mock data
+// Updated mock data structure to match our types
 const mockProducts: Product[] = [
   {
     id: "prod1",
@@ -38,7 +38,15 @@ const mockQuotes: Quote[] = [
   }
 ];
 
-const mockUsers: User[] = [
+// Updated to match the structure we're expecting in the component
+interface UserWithProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
+const mockUsers: UserWithProfile[] = [
   { id: "cust1", full_name: "Customer Demo", email: "customer@example.com", role: "customer" },
   { id: "vend1", full_name: "Vendor Demo", email: "vendor@example.com", role: "vendor" },
   { id: "vend2", full_name: "Vendor 2", email: "vendor2@example.com", role: "vendor" },
@@ -49,7 +57,7 @@ export default function InternDashboard() {
   const { currentUser, profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [users, setUsers] = useState<{id: string, full_name: string, email: string, role: string}[]>([]);
+  const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

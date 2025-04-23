@@ -12,8 +12,8 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <span className="text-lg text-purple">Loading...</span>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-purple">Loading...</div>
       </div>
     );
   }
@@ -27,7 +27,10 @@ export default function Dashboard() {
   }
 
   // Determine which dashboard to show based on user role
-  const userRole: UserRole | undefined = currentUser.role || (profile?.role as UserRole | undefined);
+  const userRole: UserRole | undefined = 
+    currentUser.role && ["customer", "vendor", "intern"].includes(currentUser.role)
+      ? (currentUser.role as UserRole)
+      : (profile?.role as UserRole | undefined);
 
   return (
     <AuthGuard>

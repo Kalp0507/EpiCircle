@@ -32,7 +32,7 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       : (profile?.role as UserRole | undefined);
 
   // Check if user has required role
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+  if (allowedRoles && allowedRoles.length > 0 && userRole && !allowedRoles.includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

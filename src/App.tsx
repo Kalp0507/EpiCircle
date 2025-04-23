@@ -15,6 +15,7 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/layout/AuthGuard";
 import QuotesPage from "./pages/Quotes";
+import { UserRole } from "./types";
 
 const queryClient = new QueryClient();
 
@@ -32,12 +33,19 @@ const App = () => (
             <Route
               path="/new-product"
               element={
-                <AuthGuard>
+                <AuthGuard allowedRoles={["customer"] as UserRole[]}>
                   <NewProduct />
                 </AuthGuard>
               }
             />
-            <Route path="/quotes" element={<QuotesPage />} />
+            <Route 
+              path="/quotes" 
+              element={
+                <AuthGuard allowedRoles={["vendor"] as UserRole[]}>
+                  <QuotesPage />
+                </AuthGuard>
+              }
+            />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

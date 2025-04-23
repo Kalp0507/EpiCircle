@@ -1,20 +1,17 @@
 
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserRole } from "@/types";
-
-const socialProviders = [
-  { name: "Google", id: "google", icon: "G" },
-  { name: "Twitter", id: "twitter", icon: "T" },
-  { name: "GitHub", id: "github", icon: "GH" },
-];
+import { toast } from "sonner";
 
 export default function AuthPage() {
   const { signIn, signUp, isLoading, currentUser } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'signup' ? true : false;
+  const [isSignUp, setIsSignUp] = useState(initialTab);
   const [email, setEmail] = useState("");
   const [full_name, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -36,15 +33,16 @@ export default function AuthPage() {
     try {
       if (isSignUp) {
         await signUp({ email, password, full_name, phone, role });
+        toast.success("Account created successfully! You can now sign in.");
       } else {
         await signIn({ email, password });
+        toast.success("Signed in successfully!");
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong");
+      toast.error(err.message || "Authentication failed");
     }
   };
-
-  // Removed broken social login handler for now
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
