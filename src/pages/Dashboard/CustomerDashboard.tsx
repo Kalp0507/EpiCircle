@@ -65,7 +65,7 @@ export default function CustomerDashboard() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome, {profile?.full_name || currentUser?.id}
+            Welcome, {profile?.full_name || profile?.id || currentUser?.id}
           </h1>
           <p className="text-gray-600 mt-1">
             Manage your products and review vendor quotes

@@ -25,8 +25,11 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     return <Navigate to="/auth?tab=signin" state={{ from: location }} replace />;
   }
 
-  // Get the role from currentUser or profile
-  const userRole = currentUser.role || (profile?.role as UserRole | undefined);
+  // Get the role from currentUser or profile, must be UserRole or undefined
+  const userRole: UserRole | undefined =
+    currentUser.role && ["customer", "vendor", "intern"].includes(currentUser.role)
+      ? (currentUser.role as UserRole)
+      : (profile?.role as UserRole | undefined);
 
   // Check if user has required role
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {

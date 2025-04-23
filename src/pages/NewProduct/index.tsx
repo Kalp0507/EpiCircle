@@ -86,7 +86,7 @@ export default function NewProduct() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       console.log("Submitted product:", {
         ...formData,
-        customerId: currentUser?.id,
+        customerId: profile?.id || currentUser?.id,
         customerName: profile?.full_name || currentUser?.id,
         createdAt: new Date().toISOString(),
       });

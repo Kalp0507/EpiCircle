@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,7 @@ export default function UnauthorizedPage() {
           {currentUser && (
             <div className="mb-6 p-4 bg-gray-50 rounded-md text-sm text-left">
               <p className="font-medium text-gray-700">Current user information:</p>
-              <p className="mt-1 text-gray-600">Name: {profile?.full_name || currentUser.id}</p>
+              <p className="mt-1 text-gray-600">Name: {profile?.full_name || profile?.id || currentUser.id}</p>
               <p className="text-gray-600">Role: {currentUser.role}</p>
             </div>
           )}

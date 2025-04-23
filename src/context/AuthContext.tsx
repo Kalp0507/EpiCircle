@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -14,7 +13,7 @@ type Profile = {
 };
 
 interface AuthContextType {
-  currentUser: (User & { role?: UserRole }) | null;
+  currentUser: (User & { role?: UserRole | null }) | null;
   profile: Profile | null;
   isLoading: boolean;
   signIn: (params: { email: string; password: string; }) => Promise<void>;
@@ -36,18 +35,19 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<(User & { role?: UserRole }) | null>(null);
+  const [currentUser, setCurrentUser] = useState<(User & { role?: UserRole | null }) | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
-  // Load session and subscribe to changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
-        const userWithRole = session.user;
-        setCurrentUser(userWithRole);
+        setCurrentUser({
+          ...session.user,
+          role: undefined
+        });
         setTimeout(() => {
           refreshProfile(session.user.id);
         }, 0);
@@ -56,12 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
       }
     });
-    
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        const userWithRole = session.user;
-        setCurrentUser(userWithRole);
+        setCurrentUser({
+          ...session.user,
+          role: undefined
+        });
         refreshProfile(session.user.id);
       } else {
         setCurrentUser(null);
@@ -69,11 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setIsLoading(false);
     });
-    
+
     return () => {
       subscription.unsubscribe();
     };
-    // eslint-disable-next-line
   }, []);
 
   const refreshProfile = async (id?: string) => {
@@ -81,20 +82,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userId = id || currentUser?.id;
       if (!userId) return;
-      
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
-      
+        .maybeSingle();
+
       if (error) {
         console.error("Error fetching profile:", error);
         setProfile(null);
-      } else {
+      } else if (data) {
         setProfile(data as Profile);
-        // Update currentUser with role from profile
-        if (currentUser && data.role) {
+        if (currentUser && data.role && ["customer", "vendor", "intern"].includes(data.role)) {
           setCurrentUser({
             ...currentUser,
             role: data.role as UserRole
@@ -106,7 +106,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Sign in with email/password
   const signIn = async ({ email, password }: { email: string; password: string }) => {
     setIsLoading(true);
     try {
@@ -121,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Sign up with email/password
   const signUp = async ({ email, password, full_name, phone, role }: { email: string; password: string; full_name: string; phone: string; role: UserRole }) => {
     setIsLoading(true);
     try {
@@ -136,9 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         },
       });
-      
+
       if (error) throw error;
-      
+
     } catch (error: any) {
       console.error("Sign up error:", error.message);
       throw error;
