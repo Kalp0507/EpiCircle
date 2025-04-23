@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,8 +8,7 @@ import { AuthProvider } from "./context/AuthContext";
 
 // Pages
 import Index from "./pages/LandingPage";
-import SignIn from "./pages/Auth/SignIn";
-import SignUp from "./pages/Auth/SignUp";
+import AuthPage from "./pages/Auth/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import NewProduct from "./pages/NewProduct";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
@@ -27,16 +27,15 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route 
-              path="/new-product" 
+            <Route
+              path="/new-product"
               element={
-                <AuthGuard allowedRoles={["customer"]}>
+                <AuthGuard>
                   <NewProduct />
                 </AuthGuard>
-              } 
+              }
             />
             <Route path="/quotes" element={<QuotesPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />

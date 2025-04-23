@@ -1,123 +1,143 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, UserRole } from "@/types";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { Session } from "@supabase/supabase-js";
+
+type Profile = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+};
 
 interface AuthContextType {
   currentUser: User | null;
+  profile: Profile | null;
   isLoading: boolean;
-  signIn: (email: string, password: string, phone?: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
+  signIn: (params: { email?: string; password?: string; provider?: "google" | "twitter" | "github" }) => Promise<void>;
+  signUp: (params: { email: string; password: string; full_name: string; phone: string }) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
-const defaultContext: AuthContextType = {
+const AuthContext = createContext<AuthContextType>({
   currentUser: null,
+  profile: null,
   isLoading: true,
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
-};
-
-const AuthContext = createContext<AuthContextType>(defaultContext);
+  refreshProfile: async () => {},
+});
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
 
-  // Mock authentication for demo purposes
+  // Load session and subscribe to changes
   useEffect(() => {
-    // Simulate loading auth state
-    const timer = setTimeout(() => {
-      const savedUser = localStorage.getItem("bidboost_user");
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        setTimeout(() => {
+          refreshProfile(session.user.id);
+        }, 0);
+      } else {
+        setProfile(null);
+      }
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        refreshProfile(session.user.id);
       }
       setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line
   }, []);
 
-  const signIn = async (email: string, password: string, phone?: string) => {
-    // Mock sign in - would be replaced with actual Firebase auth
+  const refreshProfile = async (id?: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // For demo, we'll create sample users for each role
-      let mockUser: User;
-
-      if (email.includes("customer")) {
-        mockUser = { id: "cust1", name: "Customer Demo", email, role: "customer", phone };
-      } else if (email.includes("vendor")) {
-        mockUser = { id: "vend1", name: "Vendor Demo", email, role: "vendor", phone };
-      } else if (email.includes("intern")) {
-        mockUser = { id: "int1", name: "Intern Demo", email, role: "intern", phone };
+      const userId = id || currentUser?.id;
+      if (!userId) return;
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      if (error) {
+        setProfile(null);
       } else {
-        // Default to customer
-        mockUser = { id: "cust2", name: "Default Customer", email, role: "customer", phone };
+        setProfile(data as Profile);
       }
-
-      setCurrentUser(mockUser);
-      localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Sign in error:", error);
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
-    // Mock sign up - would be replaced with actual Firebase auth
+  // Sign in with email/password or social
+  const signIn: AuthContextType["signIn"] = async ({ email, password, provider }) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (provider) {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+        });
+        if (error) throw error;
+        return;
+      }
+      if (!email || !password) throw new Error("Email and password required");
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
-        name,
+  // Sign up with email/password
+  const signUp: AuthContextType["signUp"] = async ({ email, password, full_name, phone }) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
         email,
-        role,
-        phone,
-      };
-
-      setCurrentUser(mockUser);
-      localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Sign up error:", error);
-      throw error;
+        password,
+        options: {
+          data: { full_name, phone },
+        },
+      });
+      if (error) throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const signOut = async () => {
-    // Mock sign out
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await supabase.auth.signOut();
+      setProfile(null);
       setCurrentUser(null);
-      localStorage.removeItem("bidboost_user");
-    } catch (error) {
-      console.error("Sign out error:", error);
-      throw error;
+      setSession(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     currentUser,
+    profile,
     isLoading,
     signIn,
     signUp,
     signOut,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

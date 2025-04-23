@@ -1,10 +1,9 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LandingPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, profile } = useAuth();
   
   return (
     <div className="bg-white">
@@ -31,17 +30,25 @@ export default function LandingPage() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               {currentUser ? (
-                <Link to="/dashboard">
-                  <Button variant="purple" size="lg">Go to Dashboard</Button>
-                </Link>
+                <span>
+                  <span className="block mb-2 text-base font-semibold">
+                    {profile?.full_name || profile?.id}
+                  </span>
+                  <span className="block mb-2 text-xs text-gray-500">
+                    {profile?.phone}
+                  </span>
+                  <Button asChild variant="purple" size="lg">
+                    <a href="/dashboard">Go to Dashboard</a>
+                  </Button>
+                </span>
               ) : (
                 <>
-                  <Link to="/signin">
+                  <a href="/auth">
                     <Button variant="purple" size="lg">Get Started</Button>
-                  </Link>
-                  <Link to="/signup" className="text-sm font-semibold leading-6 text-gray-900">
+                  </a>
+                  <a href="/auth" className="text-sm font-semibold leading-6 text-gray-900">
                     Create an account <span aria-hidden="true">→</span>
-                  </Link>
+                  </a>
                 </>
               )}
             </div>
@@ -104,7 +111,7 @@ export default function LandingPage() {
                 <dt className="text-base font-semibold leading-7 text-gray-900">
                   <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-purple">
                     <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
                   Comprehensive Data Analysis
