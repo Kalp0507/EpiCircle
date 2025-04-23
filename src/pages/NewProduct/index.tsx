@@ -1,24 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/supabaseClient";
+import { uploadImageAndGetUrl } from "@/lib/uploadImages";
 
 interface FormData {
   name: string;
   description: string;
-  images: string[];
+  images: (string | File)[];
   vendorIds: string[];
 }
 
 type Step = 'details' | 'images' | 'vendors' | 'review';
 
-const mockVendors = [
-  { id: "vend1", name: "Vintage Valuers Ltd.", specialty: "Antique furniture and artwork", phone: "+1 234-456-1011" },
-  { id: "vend2", name: "Heritage Appraisals", specialty: "Jewelry and timepieces", phone: "+1 234-456-1022" },
-  { id: "vend3", name: "Collectibles Corner", specialty: "Coins, stamps, and memorabilia", phone: "+1 234-456-1033" },
-  { id: "vend4", name: "Retro Electronics", specialty: "Vintage electronics and gadgets", phone: "+1 234-456-1044" },
-];
+type Vendor = {
+  id: string;
+  name: string;
+  phone: string;
+};
 
 export default function NewProduct() {
   const { currentUser } = useAuth();
@@ -33,25 +34,41 @@ export default function NewProduct() {
     vendorIds: [],
   });
 
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+
+  useEffect(() => {
+    const fetchVendors = async () => {
+      setLoadingVendors(true);
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, phone')
+        .eq('role', 'vendor');
+
+      if (error) {
+        setLoadingVendors(false);
+        return;
+      }
+
+      setVendors((data as Vendor[]) || []);
+      setLoadingVendors(false);
+    };
+
+    fetchVendors();
+  }, []);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const fileArr: File[] = Array.from(files);
-    Promise.all(
-      fileArr.map((file) => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      })
-    ).then((base64Arr) => {
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, ...base64Arr].slice(0, 6),
-      }));
-    });
+
+    // Only allow up to 6 images in total
+    const filesArray = Array.from(files).slice(0, 6 - formData.images.length);
+
+    setFormData(prev => ({
+      ...prev,
+      // Store File objects, not URLs, for uploading later
+      images: [...prev.images, ...filesArray].slice(0, 6),
+    }));
   };
 
   const handleRemoveImage = (index: number) => {
@@ -83,20 +100,41 @@ export default function NewProduct() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Submitted product:", {
-        ...formData,
-        customerId: currentUser?.id,
-        customerName: currentUser?.name,
-        createdAt: new Date().toISOString(),
+      // Upload images and get their URLs
+      const imageFiles = formData.images as unknown as File[]; // assuming File[] from input
+      console.log(imageFiles)
+      const uploadedImageUrls = await Promise.all(
+        imageFiles.map(file => uploadImageAndGetUrl(file, currentUser.id))
+      );
+
+
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        imageURLs: uploadedImageUrls,
+        vendor_ids: formData.vendorIds,
+        customer_id: currentUser?.id,
+        created_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase.from("products").insert([payload]);
+
+      if (error) throw error;
+
+      console.log("Inserted product:", data);
+      navigate("/dashboard", {
+        state: {
+          success: true,
+          message: "Product submitted successfully!",
+        },
       });
-      navigate("/dashboard", { state: { success: true, message: "Product submitted successfully!" } });
     } catch (error) {
       console.error("Error submitting product:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const nextStep = () => {
     if (currentStep === 'details') setCurrentStep('images');
@@ -205,7 +243,7 @@ export default function NewProduct() {
                   {formData.images.map((img, idx) => (
                     <div className="relative group" key={idx}>
                       <img
-                        src={img}
+                        src={typeof img === "string" ? img : URL.createObjectURL(img)}
                         alt={`Product ${idx + 1}`}
                         className="w-28 h-28 object-cover rounded-lg border border-gray-300 dark:border-gray-700"
                       />
@@ -246,22 +284,19 @@ export default function NewProduct() {
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Select Vendors</h2>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">Choose vendors to request quotes from. Select at least one.</p>
                 <div className="space-y-4 mt-4">
-                  {mockVendors.map((vendor) => (
+                  {vendors.map((vendor) => (
                     <div
                       key={vendor.id}
-                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition-colors flex flex-col sm:flex-row sm:items-center justify-between ${
-                        formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple-light dark:bg-purple/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
+                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition-colors flex flex-col sm:flex-row sm:items-center justify-between ${formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple-light dark:bg-purple/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
                       onClick={() => handleVendorSelect(vendor.id)}
                     >
                       <div>
                         <h3 className="font-medium text-gray-900 dark:text-white">{vendor.name}</h3>
-                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{vendor.specialty}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Phone: <span className="font-medium">{vendor.phone}</span></p>
                       </div>
-                      <div className={`mt-2 sm:mt-0 w-5 h-5 rounded-full border ${
-                        formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple' : 'border-gray-300 dark:border-gray-700'
-                      } flex items-center justify-center`}>
+                      <div className={`mt-2 sm:mt-0 w-5 h-5 rounded-full border ${formData.vendorIds.includes(vendor.id) ? 'border-purple bg-purple' : 'border-gray-300 dark:border-gray-700'
+                        } flex items-center justify-center`}>
                         {formData.vendorIds.includes(vendor.id) && (
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -273,7 +308,7 @@ export default function NewProduct() {
                 </div>
                 <div className="flex items-center justify-center mt-6">
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {formData.vendorIds.length} of {mockVendors.length} selected
+                    {formData.vendorIds.length} of {vendors.length} selected
                   </div>
                 </div>
               </div>
@@ -299,7 +334,7 @@ export default function NewProduct() {
                         {formData.images.map((image, index) => (
                           <img
                             key={index}
-                            src={image}
+                            src={typeof image === "string" ? image : URL.createObjectURL(image)}
                             alt={`Product ${index + 1}`}
                             className="h-20 w-20 object-cover rounded-md border border-gray-200 dark:border-gray-700"
                           />
@@ -309,7 +344,7 @@ export default function NewProduct() {
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300">Selected Vendors</h3>
                       <ul className="mt-2 list-disc list-inside text-base text-gray-900 dark:text-white">
-                        {mockVendors
+                        {vendors
                           .filter(vendor => formData.vendorIds.includes(vendor.id))
                           .map(vendor => (
                             <li key={vendor.id}>
