@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 interface FormData {
   name: string;
@@ -33,32 +34,51 @@ export default function NewProduct() {
     vendorIds: [],
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    
     const fileArr: File[] = Array.from(files);
-    Promise.all(
-      fileArr.map((file) => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      })
-    ).then((base64Arr) => {
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, ...base64Arr].slice(0, 6),
-      }));
-    });
-  };
+    const uploadPromises = fileArr.map(async (file) => {
+      const uniqueFilename = `${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('product_images')
+        .upload(`${currentUser?.id}/${uniqueFilename}`, file);
 
-  const handleRemoveImage = (index: number) => {
+      if (error) {
+        console.error('Error uploading file:', error);
+        return null;
+      }
+
+      return data?.path || null;
+    });
+
+    const paths = await Promise.all(uploadPromises);
+    const validPaths = paths.filter((path): path is string => path !== null);
+    
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((img, i) => i !== index)
+      images: [...prev.images, ...validPaths].slice(0, 6),
     }));
+  };
+
+  const handleRemoveImage = async (index: number) => {
+    const imageToRemove = formData.images[index];
+    
+    try {
+      const { error } = await supabase.storage
+        .from('product_images')
+        .remove([imageToRemove]);
+
+      if (error) throw error;
+
+      setFormData(prev => ({
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index)
+      }));
+    } catch (error) {
+      console.error('Error removing image:', error);
+    }
   };
 
   const handleVendorSelect = (vendorId: string) => {
@@ -83,15 +103,53 @@ export default function NewProduct() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Submitted product:", {
-        ...formData,
-        customerId: currentUser?.id,
-        customerName: currentUser?.name,
-        createdAt: new Date().toISOString(),
+      if (!currentUser) throw new Error('User not authenticated');
+
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .insert({
+          name: formData.name,
+          description: formData.description,
+          customer_id: currentUser.id
+        })
+        .select()
+        .single();
+
+      if (productError) throw productError;
+
+      if (formData.images.length > 0) {
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(
+            formData.images.map(path => ({
+              product_id: product.id,
+              image_path: path
+            }))
+          );
+
+        if (imagesError) throw imagesError;
+      }
+
+      if (formData.vendorIds.length > 0) {
+        const { error: vendorsError } = await supabase
+          .from('product_vendors')
+          .insert(
+            formData.vendorIds.map(vendorId => ({
+              product_id: product.id,
+              vendor_id: vendorId
+            }))
+          );
+
+        if (vendorsError) throw vendorsError;
+      }
+
+      navigate("/dashboard", { 
+        state: { 
+          success: true, 
+          message: "Product submitted successfully!" 
+        } 
       });
-      navigate("/dashboard", { state: { success: true, message: "Product submitted successfully!" } });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting product:", error);
     } finally {
       setIsSubmitting(false);

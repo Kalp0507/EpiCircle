@@ -1,5 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, UserRole } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -9,60 +13,89 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const defaultContext: AuthContextType = {
-  currentUser: null,
-  isLoading: true,
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
-};
-
-const AuthContext = createContext<AuthContextType>(defaultContext);
+const AuthContext = createContext<AuthContextType>(null!);
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const savedUser = localStorage.getItem("bidboost_user");
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-      }
-      setIsLoading(false);
-    }, 1000);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-    return () => clearTimeout(timer);
+          if (profile) {
+            setCurrentUser({
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              role: profile.role,
+              phone: profile.phone || undefined,
+            });
+          }
+        } else {
+          setCurrentUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setCurrentUser({
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                role: profile.role,
+                phone: profile.phone || undefined,
+              });
+            }
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string, phone?: string, role?: string) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      let userRole = role as "customer" | "vendor" | "intern" | undefined;
-
-      if (!userRole) {
-        if (email.includes("customer")) userRole = "customer";
-        else if (email.includes("vendor")) userRole = "vendor";
-        else if (email.includes("intern")) userRole = "intern";
-        else userRole = "customer";
-      }
-
-      let mockUser: User = {
-        id: userRole === "customer" ? "cust1" : userRole === "vendor" ? "vend1" : "int1",
-        name: userRole === "customer" ? "Customer Demo" : userRole === "vendor" ? "Vendor Demo" : "Intern Demo",
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        role: userRole,
-        phone,
-      };
+        password
+      });
 
-      setCurrentUser(mockUser);
-      localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Sign in error:", error);
+      if (error) throw error;
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing in",
+        description: error.message
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -72,20 +105,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
-        name,
+      const { error } = await supabase.auth.signUp({
         email,
-        role,
-        phone,
-      };
+        password,
+        options: {
+          data: {
+            name,
+            role,
+            phone
+          }
+        }
+      });
 
-      setCurrentUser(mockUser);
-      localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Sign up error:", error);
+      if (error) throw error;
+      
+      toast({
+        title: "Account created successfully",
+        description: "Please check your email to verify your account."
+      });
+      
+      navigate("/signin");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing up",
+        description: error.message
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -93,16 +138,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       setCurrentUser(null);
-      localStorage.removeItem("bidboost_user");
-    } catch (error) {
-      console.error("Sign out error:", error);
+      navigate("/signin");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message
+      });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
