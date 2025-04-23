@@ -4,42 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Product, Quote } from "@/types";
-
-// Mock data
-const mockProducts: Product[] = [
-  {
-    id: "prod1",
-    name: "Antique Wooden Chair",
-    description: "19th century oak chair with intricate carvings",
-    images: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Chair+Image"],
-    customerId: "cust1",
-    customerName: "Customer Demo",
-    vendorIds: ["vend1", "vend2"],
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "prod2",
-    name: "Vintage Gold Watch",
-    description: "1950s Swiss made gold-plated wristwatch",
-    images: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Watch+Image"],
-    customerId: "cust1",
-    customerName: "Customer Demo",
-    vendorIds: ["vend1"],
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const mockQuotes: Quote[] = [
-  {
-    id: "quote1",
-    productId: "prod1",
-    vendorId: "vend1",
-    vendorName: "Vendor Demo",
-    price: 450,
-    notes: "Can restore minor damage if needed. Delivery in 3-5 days.",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  }
-];
+import { supabase } from "@/supabaseClient";
 
 export default function VendorDashboard() {
   const { currentUser } = useAuth();
@@ -48,23 +13,30 @@ export default function VendorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
-    const fetchData = async () => {
+    const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProducts(mockProducts);
-        setQuotes(mockQuotes);
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .contains("vendor_ids", [currentUser?.id])
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        setProducts(data || []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching products:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    if (currentUser?.id) {
+      fetchProducts();
+    }
+  }, [currentUser?.id]);
+  
 
   const getQuoteForProduct = (productId: string) => {
     return quotes.find(quote => quote.productId === productId);
@@ -110,7 +82,7 @@ export default function VendorDashboard() {
                     <div className="flex flex-col sm:flex-row">
                       <div className="sm:flex-shrink-0 mb-4 sm:mb-0">
                         <img 
-                          src={product.images[0]} 
+                          src={product.imageURLs[0]} 
                           alt={product.name}
                           className="h-32 w-32 object-cover rounded-md border border-gray-200" 
                         />
@@ -119,7 +91,7 @@ export default function VendorDashboard() {
                         <div className="flex items-center justify-between">
                           <h4 className="text-lg font-medium text-gray-900">{product.name}</h4>
                           <span className="text-sm text-gray-500">
-                            {new Date(product.createdAt).toLocaleDateString()}
+                            {new Date(product.created_at).toLocaleDateString()}
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-gray-500">{product.description}</p>
@@ -161,7 +133,7 @@ export default function VendorDashboard() {
                     <div className="flex flex-col sm:flex-row">
                       <div className="sm:flex-shrink-0 mb-4 sm:mb-0">
                         <img 
-                          src={product.images[0]} 
+                          src={product.imageURLs[0]} 
                           alt={product.name}
                           className="h-32 w-32 object-cover rounded-md border border-gray-200" 
                         />
