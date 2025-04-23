@@ -1,11 +1,12 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthNavigation } from "@/hooks/use-auth-navigation";
 import { Button } from "@/components/ui/button";
 
 export default function SignIn() {
   const { signIn } = useAuthNavigation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);

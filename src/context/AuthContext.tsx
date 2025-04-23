@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient"; // Update path if needed
 import { User, UserRole } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
@@ -89,7 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw err;
     } finally {
       setIsLoading(false);
-      throw error;
     }
   };
   
@@ -128,6 +126,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Sign out error:", error);
       throw error;
     }
+  };
+
+  // Simple navigate function using window.location (replace with your router if needed)
+  const navigate = (path: string) => {
+    window.location.href = path;
   };
 
   const value = {
