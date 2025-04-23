@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +6,8 @@ import { useToast } from "@/components/ui/use-toast";
 interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  signIn: (email: string, password: string, phone?: string, role?: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
   navigate: (path: string) => void;
 }
@@ -86,10 +85,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const signIn = async (email: string, password: string, phone?: string, role?: string) => {
+  const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Try to sign in with Supabase
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -97,31 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
-      // For demo purposes: Create a mock user if role is provided
-      if (role) {
-        console.log("Creating mock user with role:", role);
-        
-        // Create a mock user
-        const mockUser = {
-          id: "demo-user-id",
-          name: email.split("@")[0],
-          email,
-          role: role as UserRole,
-          phone
-        };
-        
-        setCurrentUser(mockUser);
-        console.log("Mock user created:", mockUser);
-        
-        // Use a more robust solution - first set state, then navigate after a small delay
-        setTimeout(() => {
-          console.log("Redirecting to dashboard after delay");
-          navigate("/dashboard");
-        }, 300);
-      } else {
-        // Normal flow - wait for auth state change to populate currentUser
-        console.log("Signed in successfully, waiting for auth state to update");
-      }
+      // Normal flow - wait for auth state change to populate currentUser
+      console.log("Signed in successfully, waiting for auth state to update");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -133,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
+  const signUp = async (email: string, password: string, name: string, role: UserRole) => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -142,8 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             name,
-            role,
-            phone
+            role
           }
         }
       });
