@@ -93,7 +93,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) throw error;
-      navigate("/dashboard");
+      
+      // Mock user creation for demonstration purposes
+      if (!error && role) {
+        // Set a mock user in the state
+        setCurrentUser({
+          id: "demo-user-id",
+          name: email.split("@")[0],
+          email,
+          role: role as UserRole,
+          phone
+        });
+        
+        // Redirect to the dashboard
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
