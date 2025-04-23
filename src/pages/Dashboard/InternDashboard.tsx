@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Product, Quote, User } from "@/types";
@@ -9,21 +8,21 @@ const mockProducts: Product[] = [
     id: "prod1",
     name: "Antique Wooden Chair",
     description: "19th century oak chair with intricate carvings",
-    images: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Chair+Image"],
-    customerId: "cust1",
+    imageURLs: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Chair+Image"],
+    customer_id: "cust1",
     customerName: "Customer Demo",
-    vendorIds: ["vend1", "vend2"],
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    vendor_ids: ["vend1", "vend2"],
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "prod2",
     name: "Vintage Gold Watch",
     description: "1950s Swiss made gold-plated wristwatch",
-    images: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Watch+Image"],
-    customerId: "cust1",
+    imageURLs: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Watch+Image"],
+    customer_id: "cust1",
     customerName: "Customer Demo",
-    vendorIds: ["vend1"],
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    vendor_ids: ["vend1"],
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -54,11 +53,9 @@ export default function InternDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         setProducts(mockProducts);
         setQuotes(mockQuotes);
@@ -211,12 +208,12 @@ export default function InternDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((product) => (
+                {products.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <img className="h-10 w-10 rounded-md object-cover" src={product.images[0]} alt="" />
+                          <img className="h-10 w-10 rounded-md object-cover" src={product.imageURLs[0]} alt="" />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -227,10 +224,10 @@ export default function InternDashboard() {
                       <div className="text-sm text-gray-900">{product.customerName}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{new Date(product.createdAt).toLocaleDateString()}</div>
+                      <div className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{product.vendorIds.length}</div>
+                      <div className="text-sm text-gray-500">{product.vendor_ids.length}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
@@ -279,7 +276,7 @@ export default function InternDashboard() {
                             <div className="flex-shrink-0 h-10 w-10">
                               <img 
                                 className="h-10 w-10 rounded-md object-cover" 
-                                src={product?.images[0]} 
+                                src={product?.imageURLs[0]} 
                                 alt="" 
                               />
                             </div>
