@@ -12,26 +12,20 @@ const mockProducts: Product[] = [
     name: "Antique Wooden Chair",
     description: "19th century oak chair with intricate carvings",
     images: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Chair+Image"],
-    customer_id: "cust1",
-    customerId: "cust1", // For backwards compatibility
+    customerId: "cust1",
     customerName: "Customer Demo",
     vendorIds: ["vend1", "vend2"],
-    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // For backwards compatibility
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "prod2",
     name: "Vintage Gold Watch",
     description: "1950s Swiss made gold-plated wristwatch",
     images: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Watch+Image"],
-    customer_id: "cust1",
-    customerId: "cust1", // For backwards compatibility
+    customerId: "cust1",
     customerName: "Customer Demo",
     vendorIds: ["vend1"],
-    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // For backwards compatibility
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
