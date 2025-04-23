@@ -28,7 +28,7 @@ export default function SignIn() {
 
     try {
       // Pass selected role as an optional mock override (for demo purposes)
-      await signIn(email, password, phone, role); 
+      await signIn(email, password); 
       navigate("/dashboard");
     } catch (err) {
       setError("Failed to sign in. Please check your credentials.");

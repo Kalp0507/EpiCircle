@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "@/supabaseClient"; // Update path if needed
 import { User, UserRole } from "@/types";
 
 interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  signIn: (email: string, password: string, phone?: string, role?: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -25,68 +26,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Listen to auth changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const savedUser = localStorage.getItem("bidboost_user");
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile) {
+          setCurrentUser({
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role,
+            phone: profile.phone,
+          });
+        }
       }
       setIsLoading(false);
-    }, 1000);
+    };
 
-    return () => clearTimeout(timer);
+    getSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
   }, []);
-
-  const signIn = async (email: string, password: string, phone?: string, role?: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      let userRole = role as "customer" | "vendor" | "intern" | undefined;
-
-      if (!userRole) {
-        if (email.includes("customer")) userRole = "customer";
-        else if (email.includes("vendor")) userRole = "vendor";
-        else if (email.includes("intern")) userRole = "intern";
-        else userRole = "customer";
-      }
-
-      let mockUser: User = {
-        id: userRole === "customer" ? "cust1" : userRole === "vendor" ? "vend1" : "int1",
-        name: userRole === "customer" ? "Customer Demo" : userRole === "vendor" ? "Vendor Demo" : "Intern Demo",
-        email,
-        role: userRole,
-        phone,
-      };
-
-      setCurrentUser(mockUser);
-      localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Sign in error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const signUp = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
-        name,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        role,
-        phone,
-      };
-
-      setCurrentUser(mockUser);
-      localStorage.setItem("bidboost_user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Sign up error:", error);
-      throw error;
+        password,
+      });
+  
+      if (error) throw error;
+  
+      // optionally insert user metadata into your custom users table
+      if (data.user) {
+        await supabase.from("users").insert({
+          id: data.user.id,
+          email,
+          name,
+          role,
+          phone,
+        });
+      }
+  
+      if (data.user && data.user.id) {
+        setCurrentUser({ id: data.user.id, email, name, role, phone });
+        localStorage.setItem("bidboost_user", JSON.stringify({ id: data.user.id, email, name, role, phone }));
+      }
+    } catch (err) {
+      console.error("Sign up error:", err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const signIn = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+  
+      if (error) throw error;
+  
+      const { data: profile } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", data.user?.id)
+        .single();
+  
+      setCurrentUser(profile);
+      localStorage.setItem("bidboost_user", JSON.stringify(profile));
+    } catch (err) {
+      console.error("Sign in error:", err);
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -95,9 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       setCurrentUser(null);
-      localStorage.removeItem("bidboost_user");
     } catch (error) {
       console.error("Sign out error:", error);
       throw error;
