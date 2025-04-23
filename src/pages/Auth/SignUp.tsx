@@ -1,13 +1,11 @@
-
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
+import { useAuthNavigation } from "@/hooks/use-auth-navigation";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types";
 
 export default function SignUp() {
-  const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp } = useAuthNavigation();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +21,6 @@ export default function SignUp() {
 
     try {
       await signUp(email, password, name, role, phone); // Phone passed
-      navigate("/dashboard");
     } catch (err) {
       setError("Failed to create account. Please try again.");
       console.error(err);

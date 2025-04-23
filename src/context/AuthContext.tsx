@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
@@ -11,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string, phone?: string, role?: string) => Promise<void>;
   signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  navigate: (path: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
@@ -20,8 +20,12 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
   const { toast } = useToast();
+
+  // This is a navigation function that will be implemented by the consumer of this context
+  const navigate = (path: string) => {
+    window.location.href = path;
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -159,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    navigate,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

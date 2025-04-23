@@ -1,7 +1,6 @@
-
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
+import { useAuthNavigation } from "@/hooks/use-auth-navigation";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -12,8 +11,7 @@ const roleOptions = [
 ];
 
 export default function SignIn() {
-  const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn } = useAuthNavigation();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +27,6 @@ export default function SignIn() {
     try {
       // Pass selected role as an optional mock override (for demo purposes)
       await signIn(email, password, phone, role); 
-      navigate("/dashboard");
     } catch (err) {
       setError("Failed to sign in. Please check your credentials.");
       console.error(err);
@@ -124,7 +121,6 @@ export default function SignIn() {
                 Any password will work for this demo
               </p>
             </div>
-            {/* Add Role Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Select profile
