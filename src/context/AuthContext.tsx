@@ -24,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // This is a navigation function that will be implemented by the consumer of this context
   const navigate = (path: string) => {
+    console.log("Navigating to:", path);
     window.location.href = path;
   };
 
@@ -31,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event);
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -95,18 +97,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       // Mock user creation for demonstration purposes
-      if (!error && role) {
+      if (role) {
+        console.log("Creating mock user with role:", role);
+        
         // Set a mock user in the state
-        setCurrentUser({
+        const mockUser = {
           id: "demo-user-id",
           name: email.split("@")[0],
           email,
           role: role as UserRole,
           phone
-        });
+        };
         
-        // Redirect to the dashboard
-        navigate("/dashboard");
+        setCurrentUser(mockUser);
+        console.log("Mock user created:", mockUser);
+        
+        // Redirect to the dashboard - use a small timeout to ensure state is updated
+        setTimeout(() => {
+          console.log("Redirecting to dashboard");
+          navigate("/dashboard");
+        }, 100);
       }
     } catch (error: any) {
       toast({
@@ -114,9 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Error signing in",
         description: error.message
       });
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 

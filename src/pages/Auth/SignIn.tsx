@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthNavigation } from "@/hooks/use-auth-navigation";
@@ -26,7 +27,9 @@ export default function SignIn() {
 
     try {
       // Pass selected role as an optional mock override (for demo purposes)
+      console.log("Signing in with role:", role);
       await signIn(email, password, phone, role); 
+      // Note: Navigation is handled in the AuthContext.signIn method
     } catch (err) {
       setError("Failed to sign in. Please check your credentials.");
       console.error(err);
