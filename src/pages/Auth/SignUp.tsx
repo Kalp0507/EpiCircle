@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +21,12 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      await signUp(email, password, name, role, phone); // Phone passed
+      await signUp({ 
+        email, 
+        password, 
+        full_name: name,
+        phone 
+      });
       navigate("/dashboard");
     } catch (err) {
       setError("Failed to create account. Please try again.");

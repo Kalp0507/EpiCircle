@@ -30,7 +30,7 @@ const mockProducts: Product[] = [
 ];
 
 export default function CustomerDashboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -65,7 +65,7 @@ export default function CustomerDashboard() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome, {currentUser?.name}
+            Welcome, {profile?.full_name || currentUser?.id}
           </h1>
           <p className="text-gray-600 mt-1">
             Manage your products and review vendor quotes

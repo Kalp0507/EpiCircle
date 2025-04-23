@@ -25,7 +25,8 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
+  // Make sure we're comparing against the correct UserRole type
+  if (allowedRoles && currentUser.role && !allowedRoles.includes(currentUser.role as UserRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
