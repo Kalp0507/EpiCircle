@@ -3,13 +3,21 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+const roleOptions = [
+  { value: "customer", label: "Customer" },
+  { value: "vendor", label: "Vendor" },
+  { value: "intern", label: "Intern" },
+];
 
 export default function SignIn() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState(""); // NEW
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("customer"); // default to customer
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,7 +27,8 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      await signIn(email, password, phone); // Pass phone
+      // Pass selected role as an optional mock override (for demo purposes)
+      await signIn(email, password, phone, role); 
       navigate("/dashboard");
     } catch (err) {
       setError("Failed to sign in. Please check your credentials.");
@@ -46,7 +55,6 @@ export default function SignIn() {
             </Link>
           </p>
         </div>
-
         <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
@@ -54,7 +62,6 @@ export default function SignIn() {
                 {error}
               </div>
             )}
-
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -116,6 +123,26 @@ export default function SignIn() {
               <p className="mt-1 text-xs text-gray-500">
                 Any password will work for this demo
               </p>
+            </div>
+            {/* Add Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select profile
+              </label>
+              <RadioGroup
+                defaultValue={role}
+                value={role}
+                onValueChange={setRole}
+                className="flex gap-4"
+                aria-label="Select profile"
+              >
+                {roleOptions.map((opt) => (
+                  <div key={opt.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={opt.value} id={`role-${opt.value}`} />
+                    <label htmlFor={`role-${opt.value}`} className="text-sm">{opt.label}</label>
+                  </div>
+                ))}
+              </RadioGroup>
             </div>
             <div>
               <Button
