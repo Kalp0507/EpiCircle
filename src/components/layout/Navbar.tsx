@@ -2,10 +2,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import DarkModeToggle from "./DarkModeToggle";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Navbar() {
-  const { currentUser, profile, signOut } = useAuth();
+  const { currentUser, signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -52,18 +51,11 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Avatar>
-                {profile && profile.avatar_url && (
-                  <AvatarImage src={profile.avatar_url} alt={profile.full_name || "Avatar"} />
-                )}
-                <AvatarFallback>
-                  {profile?.full_name?.[0]?.toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
               <div className="hidden md:block text-right">
-                <div className="text-sm font-medium text-gray-900">{profile?.full_name}</div>
-                <div className="text-xs text-gray-500">{profile?.phone}</div>
+                <div className="text-sm font-medium text-gray-900">{currentUser.name}</div>
+                <div className="text-xs text-gray-500 capitalize">{currentUser.role}</div>
               </div>
+              
               <Button onClick={handleSignOut} variant="outline" size="sm">
                 Sign out
               </Button>
@@ -71,10 +63,10 @@ export default function Navbar() {
           </>
         ) : (
           <div className="flex items-center gap-3">
-            <Link to="/auth">
+            <Link to="/signin">
               <Button variant="outline" size="sm">Sign in</Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/signup">
               <Button variant="purple" size="sm">Sign up</Button>
             </Link>
           </div>

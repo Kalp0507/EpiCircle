@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Product, Quote, UserRole } from "@/types";
+import { Product, Quote, User } from "@/types";
 
-// Updated mock data structure to match our types
+// Mock data
 const mockProducts: Product[] = [
   {
     id: "prod1",
@@ -38,26 +39,18 @@ const mockQuotes: Quote[] = [
   }
 ];
 
-// Updated to match the structure we're expecting in the component
-interface UserWithProfile {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-}
-
-const mockUsers: UserWithProfile[] = [
-  { id: "cust1", full_name: "Customer Demo", email: "customer@example.com", role: "customer" },
-  { id: "vend1", full_name: "Vendor Demo", email: "vendor@example.com", role: "vendor" },
-  { id: "vend2", full_name: "Vendor 2", email: "vendor2@example.com", role: "vendor" },
-  { id: "int1", full_name: "Intern Demo", email: "intern@example.com", role: "intern" },
+const mockUsers: User[] = [
+  { id: "cust1", name: "Customer Demo", email: "customer@example.com", role: "customer" },
+  { id: "vend1", name: "Vendor Demo", email: "vendor@example.com", role: "vendor" },
+  { id: "vend2", name: "Vendor 2", email: "vendor2@example.com", role: "vendor" },
+  { id: "int1", name: "Intern Demo", email: "intern@example.com", role: "intern" },
 ];
 
 export default function InternDashboard() {
-  const { currentUser, profile } = useAuth();
+  const { currentUser } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [users, setUsers] = useState<UserWithProfile[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -65,6 +58,7 @@ export default function InternDashboard() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         setProducts(mockProducts);
         setQuotes(mockQuotes);
@@ -104,7 +98,7 @@ export default function InternDashboard() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {profile?.full_name || profile?.id || currentUser?.id}
+          Welcome, {currentUser?.name}
         </h1>
         <p className="text-gray-600 mt-1">
           Platform overview and reporting dashboard

@@ -21,7 +21,7 @@ const mockVendors = [
 ];
 
 export default function NewProduct() {
-  const { currentUser, profile } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,8 +86,8 @@ export default function NewProduct() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       console.log("Submitted product:", {
         ...formData,
-        customerId: profile?.id || currentUser?.id,
-        customerName: profile?.full_name || currentUser?.id,
+        customerId: currentUser?.id,
+        customerName: currentUser?.name,
         createdAt: new Date().toISOString(),
       });
       navigate("/dashboard", { state: { success: true, message: "Product submitted successfully!" } });

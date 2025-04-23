@@ -8,7 +8,7 @@ export default function SignIn() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // NEW
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,11 +19,7 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      // Update to match the new signIn function signature expecting an object
-      await signIn({ 
-        email, 
-        password 
-      });
+      await signIn(email, password, phone); // Pass phone
       navigate("/dashboard");
     } catch (err) {
       setError("Failed to sign in. Please check your credentials.");

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ const mockQuotes: Quote[] = [
 ];
 
 export default function VendorDashboard() {
-  const { currentUser, profile } = useAuth();
+  const { currentUser } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +52,7 @@ export default function VendorDashboard() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         setProducts(mockProducts);
         setQuotes(mockQuotes);
@@ -60,6 +62,7 @@ export default function VendorDashboard() {
         setIsLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
@@ -79,7 +82,7 @@ export default function VendorDashboard() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {profile?.full_name || profile?.id || currentUser?.id}
+          Welcome, {currentUser?.name}
         </h1>
         <p className="text-gray-600 mt-1">
           View assigned products and submit your quotes
