@@ -42,7 +42,7 @@ const mockQuotes: Quote[] = [
 ];
 
 export default function VendorDashboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +82,7 @@ export default function VendorDashboard() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {currentUser?.name}
+          Welcome, {profile?.full_name || currentUser?.id}
         </h1>
         <p className="text-gray-600 mt-1">
           View assigned products and submit your quotes

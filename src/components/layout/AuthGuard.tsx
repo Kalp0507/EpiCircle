@@ -10,7 +10,7 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
-  const { currentUser, isLoading } = useAuth();
+  const { currentUser, isLoading, profile } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,11 +22,14 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   }
 
   if (!currentUser) {
-    return <Navigate to="/signin" state={{ from: location }} replace />;
+    return <Navigate to="/auth?tab=signin" state={{ from: location }} replace />;
   }
 
-  // Make sure we're comparing against the correct UserRole type
-  if (allowedRoles && currentUser.role && !allowedRoles.includes(currentUser.role as UserRole)) {
+  // Get the role from currentUser or profile
+  const userRole = currentUser.role || (profile?.role as UserRole | undefined);
+
+  // Check if user has required role
+  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

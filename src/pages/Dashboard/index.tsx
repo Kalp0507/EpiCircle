@@ -5,6 +5,7 @@ import AuthGuard from "@/components/layout/AuthGuard";
 import CustomerDashboard from "./CustomerDashboard";
 import VendorDashboard from "./VendorDashboard";
 import InternDashboard from "./InternDashboard";
+import { UserRole } from "@/types";
 
 export default function Dashboard() {
   const { currentUser, profile, isLoading } = useAuth();
@@ -25,17 +26,20 @@ export default function Dashboard() {
     );
   }
 
+  // Determine which dashboard to show based on user role
+  const userRole: UserRole | undefined = currentUser.role || (profile?.role as UserRole | undefined);
+
   return (
     <AuthGuard>
       <DashboardLayout>
-        {currentUser.role === "customer" && <CustomerDashboard />}
-        {currentUser.role === "vendor" && <VendorDashboard />}
-        {currentUser.role === "intern" && <InternDashboard />}
-        {!currentUser.role && (
+        {userRole === "customer" && <CustomerDashboard />}
+        {userRole === "vendor" && <VendorDashboard />}
+        {userRole === "intern" && <InternDashboard />}
+        {!userRole && (
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold mb-2">Welcome, {profile?.full_name || currentUser.id}!</h2>
             <p className="text-gray-500 mb-6">
-              This is your dashboard. More features coming soon!
+              This is your dashboard. Your role hasn't been assigned yet.
             </p>
             {profile?.avatar_url && (
               <img src={profile.avatar_url} alt="Avatar" className="mx-auto h-24 w-24 rounded-full object-cover mb-4 border" />
