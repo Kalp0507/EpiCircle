@@ -1,312 +1,299 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Product, Quote, User } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Table, TableBody, TableCell, TableHead, 
+  TableHeader, TableRow 
+} from "@/components/ui/table";
+import { Link } from "react-router-dom";
+import { Eye, Plus, Package, Users, FileText } from "lucide-react";
+import { Product, Customer } from "@/types";
 
 // Mock data
 const mockProducts: Product[] = [
   {
-    id: "prod1",
-    name: "Antique Wooden Chair",
-    description: "19th century oak chair with intricate carvings",
-    imageURLs: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Chair+Image"],
-    customer_id: "cust1",
-    customerName: "Customer Demo",
-    vendor_ids: ["vend1", "vend2"],
-    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    id: "1",
+    name: "Industrial Generator",
+    description: "High-capacity industrial generator for commercial use",
+    imageURLs: ["https://placehold.co/400x300"],
+    customer_id: "1",
+    customerName: "XYZ Corp",
+    intern_id: "1",
+    internName: "Alice Intern",
+    vendor_ids: ["1", "2"],
+    vendorNames: ["John Vendor", "Jane Vendor"],
+    created_at: "2023-05-15T10:00:00Z",
+    selected_vendor_id: "1"
   },
   {
-    id: "prod2",
-    name: "Vintage Gold Watch",
-    description: "1950s Swiss made gold-plated wristwatch",
-    imageURLs: ["https://placehold.co/400x300/E5DEFF/7E69AB?text=Watch+Image"],
-    customer_id: "cust1",
-    customerName: "Customer Demo",
-    vendor_ids: ["vend1"],
-    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    id: "2",
+    name: "Water Filtration System",
+    description: "Commercial grade water filtration system",
+    imageURLs: ["https://placehold.co/400x300"],
+    customer_id: "2",
+    customerName: "ABC Industries",
+    intern_id: "1",
+    internName: "Alice Intern",
+    vendor_ids: ["1"],
+    vendorNames: ["John Vendor"],
+    created_at: "2023-06-20T14:30:00Z"
   },
 ];
 
-const mockQuotes: Quote[] = [
-  {
-    id: "quote1",
-    productId: "prod1",
-    vendorId: "vend1",
-    vendorName: "Vendor Demo",
-    price: 450,
-    notes: "Can restore minor damage if needed. Delivery in 3-5 days.",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  }
-];
-
-const mockUsers: User[] = [
-  { id: "cust1", name: "Customer Demo", email: "customer@example.com", role: "customer" },
-  { id: "vend1", name: "Vendor Demo", email: "vendor@example.com", role: "vendor" },
-  { id: "vend2", name: "Vendor 2", email: "vendor2@example.com", role: "vendor" },
-  { id: "int1", name: "Intern Demo", email: "intern@example.com", role: "intern" },
+const mockCustomers: Customer[] = [
+  { id: "1", name: "XYZ Corp", phone: "+19876543210", location: "New York", created_at: "2023-01-10T09:00:00Z" },
+  { id: "2", name: "ABC Industries", phone: "+18765432109", location: "Chicago", created_at: "2023-02-15T11:00:00Z" },
 ];
 
 export default function InternDashboard() {
   const { currentUser } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProducts(mockProducts);
-        setQuotes(mockQuotes);
-        setUsers(mockUsers);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Filter products for this intern
+  const internProducts = mockProducts.filter(p => 
+    p.intern_id === currentUser?.id || p.internName === currentUser?.name
+  );
 
-    fetchData();
-  }, []);
-
-  const usersByRole = {
-    customer: users.filter(user => user.role === "customer").length,
-    vendor: users.filter(user => user.role === "vendor").length,
-    intern: users.filter(user => user.role === "intern").length,
+  const handleViewDetail = (productId: string) => {
+    setSelectedProductId(productId);
+    setCurrentView('detail');
   };
 
-  const quoteStats = {
-    total: quotes.length,
-    averagePrice: quotes.length ? quotes.reduce((acc, quote) => acc + quote.price, 0) / quotes.length : 0,
-    highestPrice: quotes.length ? Math.max(...quotes.map(quote => quote.price)) : 0,
-    lowestPrice: quotes.length ? Math.min(...quotes.map(quote => quote.price)) : 0,
+  const handleBackToList = () => {
+    setCurrentView('list');
+    setSelectedProductId(null);
   };
 
-  if (isLoading) {
+  const renderProductDetail = () => {
+    const product = mockProducts.find(p => p.id === selectedProductId);
+    if (!product) return <div>Product not found</div>;
+
+    const customer = mockCustomers.find(c => c.id === product.customer_id);
+
     return (
-      <div className="flex items-center justify-center min-h-[500px]">
-        <div className="animate-pulse text-purple">Loading data...</div>
+      <div className="space-y-6">
+        <div className="flex items-center mb-6">
+          <Button variant="outline" size="sm" onClick={handleBackToList} className="mr-2">
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </Button>
+          <h2 className="text-2xl font-bold">Product Details: {product.name}</h2>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-center mb-4">
+                <img 
+                  src={product.imageURLs[0]} 
+                  alt={product.name}
+                  className="h-48 w-auto object-cover rounded-md border"
+                />
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <span className="font-semibold">Name:</span> {product.name}
+                </div>
+                <div>
+                  <span className="font-semibold">Description:</span> {product.description}
+                </div>
+                <div>
+                  <span className="font-semibold">Created:</span> {new Date(product.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {customer && (
+                <div className="space-y-2">
+                  <div>
+                    <span className="font-semibold">Name:</span> {customer.name}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Phone:</span> {customer.phone}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Location:</span> {customer.location}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Selected Vendors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {product.vendorNames.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {product.vendorNames.map((vendorName, index) => (
+                    <TableRow key={index} className={product.vendor_ids[index] === product.selected_vendor_id ? "bg-green-50" : ""}>
+                      <TableCell>{vendorName}</TableCell>
+                      <TableCell>
+                        {product.vendor_ids[index] === product.selected_vendor_id ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Selected
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Pending
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                No vendors assigned to this product
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
-  }
+  };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {currentUser?.name}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Platform overview and reporting dashboard
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {/* Stats Cards */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-purple-light text-purple">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-gray-500 text-sm">Total Users</h2>
-              <p className="text-2xl font-semibold text-gray-700">{users.length}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex text-xs text-gray-500 justify-between mt-1">
-              <span>Customers: {usersByRole.customer}</span>
-              <span>Vendors: {usersByRole.vendor}</span>
-              <span>Interns: {usersByRole.intern}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-purple-light text-purple">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-gray-500 text-sm">Total Products</h2>
-              <p className="text-2xl font-semibold text-gray-700">{products.length}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex text-xs text-gray-500 justify-between">
-            <span>With quotes: {products.filter(p => quotes.some(q => q.productId === p.id)).length}</span>
-            <span>Pending quotes: {products.filter(p => !quotes.some(q => q.productId === p.id)).length}</span>
-          </div>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-purple-light text-purple">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-gray-500 text-sm">Quotes Submitted</h2>
-              <p className="text-2xl font-semibold text-gray-700">{quoteStats.total}</p>
-            </div>
-          </div>
-          <div className="mt-4 text-xs text-gray-500">
-            <div className="flex justify-between">
-              <span>Average: ${quoteStats.averagePrice.toFixed(2)}</span>
-              <span>Highest: ${quoteStats.highestPrice.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-purple-light text-purple">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-gray-500 text-sm">Vendor Response Rate</h2>
-              <p className="text-2xl font-semibold text-gray-700">
-                {products.length > 0 ? 
-                  Math.round((products.filter(p => quotes.some(q => q.productId === p.id)).length / products.length) * 100) + 
-                  "%" : 
-                  "0%"}
+    <div className="space-y-6">
+      {currentView === 'list' ? (
+        <>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome, {currentUser?.name}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Manage customer products
               </p>
             </div>
-          </div>
-          <div className="mt-4 text-xs text-gray-500">
-            <span>
-              {quotes.length} quotes for {products.length} products
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Recent Products */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Products</h3>
-            <p className="mt-1 text-sm text-gray-500">Latest products submitted for quotes</p>
+            <Link to="/new-product">
+              <Button variant="purple">
+                <Plus className="w-5 h-5 mr-2" />
+                Add New Product
+              </Button>
+            </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendors</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quotes</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <img className="h-10 w-10 rounded-md object-cover" src={product.imageURLs[0]} alt="" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{product.customerName}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString()}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{product.vendor_ids.length}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {quotes.filter(q => q.productId === product.id).length}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Recent Quotes */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Quotes</h3>
-            <p className="mt-1 text-sm text-gray-500">Latest vendor quotes submitted</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="flex flex-row items-center pt-6">
+                <div className="bg-blue-100 p-2 rounded-md">
+                  <Package className="h-8 w-8 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-500">Your Products</p>
+                  <h3 className="text-2xl font-bold">{internProducts.length}</h3>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex flex-row items-center pt-6">
+                <div className="bg-green-100 p-2 rounded-md">
+                  <Users className="h-8 w-8 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-500">Customers</p>
+                  <h3 className="text-2xl font-bold">{mockCustomers.length}</h3>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex flex-row items-center pt-6">
+                <div className="bg-amber-100 p-2 rounded-md">
+                  <FileText className="h-8 w-8 text-amber-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-500">Pending Quotes</p>
+                  <h3 className="text-2xl font-bold">{internProducts.filter(p => !p.selected_vendor_id).length}</h3>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {quotes.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
-                      No quotes submitted yet
-                    </td>
-                  </tr>
-                ) : (
-                  quotes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((quote) => {
-                    const product = products.find(p => p.id === quote.productId);
-                    
-                    return (
-                      <tr key={quote.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <img 
-                                className="h-10 w-10 rounded-md object-cover" 
-                                src={product?.imageURLs[0]} 
-                                alt="" 
-                              />
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {product?.name || "Unknown Product"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{quote.vendorName}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">${quote.price.toFixed(2)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {new Date(quote.createdAt).toLocaleDateString()}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">Your Products</h3>
+              <p className="mt-1 text-sm text-gray-500">Products you've added for customers</p>
+            </div>
+
+            {internProducts.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-gray-500">No products yet. Add your first one!</p>
+                <Link to="/new-product" className="mt-4 inline-block">
+                  <Button variant="purple-outline" size="sm">Add Product</Button>
+                </Link>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Date Added</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {internProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.customerName}</TableCell>
+                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {product.selected_vendor_id ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Vendor Selected
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Awaiting Selection
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetail(product.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        renderProductDetail()
+      )}
     </div>
   );
 }

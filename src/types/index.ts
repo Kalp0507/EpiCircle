@@ -1,13 +1,21 @@
 
-export type UserRole = 'customer' | 'vendor' | 'intern';
+export type UserRole = 'vendor' | 'intern' | 'admin';
 
 export interface User {
   id: string;
   name: string;
-  email: string;
+  phone: string;
   role: UserRole;
-  phone?: string;
+  location?: string;
   avatar?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  location: string;
+  created_at: string;
 }
 
 export interface Product {
@@ -17,9 +25,12 @@ export interface Product {
   imageURLs: string[];
   customer_id: string;
   customerName: string;
-  quoted_price: number;
+  intern_id: string;
+  internName: string;
   vendor_ids: string[];
+  vendorNames: string[];
   created_at: string;
+  selected_vendor_id?: string;
 }
 
 export interface Quote {
@@ -30,4 +41,21 @@ export interface Quote {
   price: number;
   notes: string;
   createdAt: string;
+  isSelected: boolean;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  phone: string;
+  location: string;
+  created_at: string;
+}
+
+export interface Intern {
+  id: string;
+  name: string;
+  phone: string;
+  location: string;
+  created_at: string;
 }

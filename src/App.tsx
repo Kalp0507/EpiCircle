@@ -34,13 +34,21 @@ const App = () => (
             <Route 
               path="/new-product" 
               element={
-                <AuthGuard allowedRoles={["customer"]}>
+                <AuthGuard allowedRoles={["intern"]}>
                   <NewProduct />
                 </AuthGuard>
               } 
             />
             <Route 
               path="/product/:id/quote" 
+              element={
+                <AuthGuard allowedRoles={["vendor"]}>
+                  <QuotesPage />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/product/:id/quote/edit" 
               element={
                 <AuthGuard allowedRoles={["vendor"]}>
                   <QuotesPage />

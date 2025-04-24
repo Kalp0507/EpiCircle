@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import CustomerDashboard from "./CustomerDashboard";
 import VendorDashboard from "./VendorDashboard";
 import InternDashboard from "./InternDashboard";
+import AdminDashboard from "./AdminDashboard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AuthGuard from "@/components/layout/AuthGuard";
 
@@ -11,12 +12,12 @@ export default function Dashboard() {
 
   const renderDashboard = () => {
     switch (currentUser?.role) {
-      case "customer":
-        return <CustomerDashboard />;
       case "vendor":
         return <VendorDashboard />;
       case "intern":
         return <InternDashboard />;
+      case "admin":
+        return <AdminDashboard />;
       default:
         return (
           <div className="text-center py-12">

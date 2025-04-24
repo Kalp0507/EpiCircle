@@ -1,18 +1,51 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "@/supabaseClient"; // Update path if needed
 import { User, UserRole } from "@/types";
+
+// Mock data for users
+const mockUsers = [
+  {
+    id: "1",
+    name: "John Vendor",
+    phone: "+1234567890",
+    role: "vendor" as UserRole,
+    location: "New York",
+    password: "password"
+  },
+  {
+    id: "2",
+    name: "Alice Intern",
+    phone: "+1987654321",
+    role: "intern" as UserRole,
+    location: "Chicago",
+    password: "password"
+  },
+  {
+    id: "3",
+    name: "Bob Admin",
+    phone: "+1122334455",
+    role: "admin" as UserRole,
+    password: "password"
+  },
+];
 
 interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>;
+  signIn: (phone: string, password: string) => Promise<void>;
+  signUp: (userData: {
+    name: string;
+    phone: string;
+    password: string;
+    role: UserRole;
+    location?: string;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const defaultContext: AuthContextType = {
   currentUser: null,
-  isLoading: true,
+  isLoading: false,
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
@@ -24,100 +57,72 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Listen to auth changes
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Check for stored user on initial load
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        if (profile) {
-          setCurrentUser({
-            id: profile.id,
-            name: profile.name,
-            email: profile.email,
-            role: profile.role,
-            phone: profile.phone,
-          });
-        }
-      }
-      setIsLoading(false);
-    };
-
-    getSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        setCurrentUser(null);
-      }
-    });
-
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
+    const storedUser = localStorage.getItem("bidboost_user");
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
   }, []);
 
-  const signUp = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
+  const signUp = async (userData: {
+    name: string;
+    phone: string;
+    password: string;
+    role: UserRole;
+    location?: string;
+  }) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-  
-      if (error) throw error;
-  
-      // optionally insert user metadata into your custom users table
-      if (data.user) {
-        await supabase.from("users").insert({
-          id: data.user.id,
-          email,
-          name,
-          role,
-          phone,
-        });
+      // Check if phone already exists
+      const existingUser = mockUsers.find(user => user.phone === userData.phone);
+      if (existingUser) {
+        throw new Error("Phone number already registered");
       }
-  
-      if (data.user && data.user.id) {
-        setCurrentUser({ id: data.user.id, email, name, role, phone });
-        localStorage.setItem("bidboost_user", JSON.stringify({ id: data.user.id, email, name, role, phone }));
-      }
-    } catch (err) {
-      console.error("Sign up error:", err);
-      throw err;
+      
+      // Create new user
+      const newUser: User & { password: string } = {
+        id: `user_${Date.now()}`,
+        name: userData.name,
+        phone: userData.phone,
+        role: userData.role,
+        location: userData.location,
+        password: userData.password
+      };
+      
+      mockUsers.push(newUser);
+      
+      // Set current user (without password)
+      const { password, ...userWithoutPassword } = newUser;
+      setCurrentUser(userWithoutPassword);
+      localStorage.setItem("bidboost_user", JSON.stringify(userWithoutPassword));
+      
+    } catch (error) {
+      console.error("Sign up error:", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
   
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (phone: string, password: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-  
-      if (error) throw error;
-  
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", data.user?.id)
-        .single();
-  
-      setCurrentUser(profile);
-      localStorage.setItem("bidboost_user", JSON.stringify(profile));
-    } catch (err) {
-      console.error("Sign in error:", err);
-      throw err;
+      const user = mockUsers.find(user => user.phone === phone && user.password === password);
+      if (!user) {
+        throw new Error("Invalid phone number or password");
+      }
+      
+      // Set current user (without password)
+      const { password: _, ...userWithoutPassword } = user;
+      setCurrentUser(userWithoutPassword);
+      localStorage.setItem("bidboost_user", JSON.stringify(userWithoutPassword));
+      
+    } catch (error) {
+      console.error("Sign in error:", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -126,9 +131,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
       setCurrentUser(null);
+      localStorage.removeItem("bidboost_user");
     } catch (error) {
       console.error("Sign out error:", error);
       throw error;

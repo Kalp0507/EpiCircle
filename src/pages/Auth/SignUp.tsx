@@ -4,17 +4,25 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types";
+import { toast } from "@/hooks/use-toast";
+import { Phone, Lock, MapPin, User } from "lucide-react";
 
 export default function SignUp() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<UserRole>("customer");
+  const [location, setLocation] = useState("");
+  const [role, setRole] = useState<UserRole>("vendor");
+  const [step, setStep] = useState(1); // 1: Select Role, 2: Fill Details
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleRoleSelection = (selectedRole: UserRole) => {
+    setRole(selectedRole);
+    setStep(2);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,15 +30,184 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      await signUp(email, password, name, role, phone); // Phone passed
+      await signUp({
+        name,
+        phone,
+        password,
+        role,
+        location: role === 'admin' ? undefined : location
+      });
+      toast({
+        title: "Account created",
+        description: "Your account has been created successfully.",
+      });
       navigate("/dashboard");
-    } catch (err) {
-      setError("Failed to create account. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Failed to create account. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const renderRoleSelection = () => (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium text-gray-900">Select Your Role</h3>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div 
+          onClick={() => handleRoleSelection("vendor")}
+          className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex flex-col items-center space-y-3 hover:border-purple-500 cursor-pointer"
+        >
+          <span className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+            <User className="h-6 w-6 text-purple-600" />
+          </span>
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-900">Vendor</p>
+            <p className="text-xs text-gray-500 mt-1">Quote on products</p>
+          </div>
+        </div>
+        <div 
+          onClick={() => handleRoleSelection("intern")}
+          className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex flex-col items-center space-y-3 hover:border-purple-500 cursor-pointer"
+        >
+          <span className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <User className="h-6 w-6 text-blue-600" />
+          </span>
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-900">Intern</p>
+            <p className="text-xs text-gray-500 mt-1">Upload products</p>
+          </div>
+        </div>
+        <div 
+          onClick={() => handleRoleSelection("admin")}
+          className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex flex-col items-center space-y-3 hover:border-purple-500 cursor-pointer"
+        >
+          <span className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+            <User className="h-6 w-6 text-green-600" />
+          </span>
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-900">Admin</p>
+            <p className="text-xs text-gray-500 mt-1">Manage everything</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSignupForm = () => (
+    <form className="space-y-6" onSubmit={handleSubmit}>
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+      
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          Full Name
+        </label>
+        <div className="mt-1 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <User className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
+          />
+        </div>
+      </div>
+      
+      <div>
+        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+          Phone Number
+        </label>
+        <div className="mt-1 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Phone className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            pattern="[0-9+\s-]{7,15}"
+            placeholder="e.g. +1234567890"
+            className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
+          />
+        </div>
+      </div>
+      
+      {(role === 'vendor' || role === 'intern') && (
+        <div>
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+            Location
+          </label>
+          <div className="mt-1 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MapPin className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="location"
+              name="location"
+              type="text"
+              required
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
+              placeholder="City, State"
+            />
+          </div>
+        </div>
+      )}
+      
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          Password
+        </label>
+        <div className="mt-1 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Lock className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-between">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => setStep(1)}
+        >
+          Back
+        </Button>
+        <Button
+          type="submit"
+          variant="purple"
+          disabled={isLoading}
+        >
+          {isLoading ? "Creating account..." : "Create account"}
+        </Button>
+      </div>
+    </form>
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -51,115 +228,7 @@ export default function SignUp() {
         </div>
 
         <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4 text-red-700 text-sm">
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full name
-              </label>
-              <div className="mt-1">
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone number
-              </label>
-              <div className="mt-1">
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  pattern="[0-9+\s-]{7,15}"
-                  placeholder="e.g. +1234567890"
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
-                />
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Enter a valid phone number for your account.
-              </p>
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Account type
-              </label>
-              <div className="mt-1">
-                <select
-                  id="role"
-                  name="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as UserRole)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple focus:border-purple sm:text-sm"
-                >
-                  <option value="customer">Customer (Submit Products)</option>
-                  <option value="vendor">Vendor (Quote Products)</option>
-                  <option value="intern">Intern (View Reports)</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <Button
-                type="submit"
-                variant="purple"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? "Creating account..." : "Create account"}
-              </Button>
-            </div>
-          </form>
+          {step === 1 ? renderRoleSelection() : renderSignupForm()}
         </div>
       </div>
     </div>
