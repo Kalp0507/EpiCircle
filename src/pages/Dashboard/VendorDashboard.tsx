@@ -9,7 +9,6 @@ import { supabase } from "@/supabaseClient";
 export default function VendorDashboard() {
   const { currentUser } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -36,11 +35,6 @@ export default function VendorDashboard() {
       fetchProducts();
     }
   }, [currentUser?.id]);
-  
-
-  const getQuoteForProduct = (productId: string) => {
-    return quotes.find(quote => quote.productId === productId);
-  };
 
   if (isLoading) {
     return (
@@ -68,23 +62,22 @@ export default function VendorDashboard() {
             <h3 className="text-lg font-medium leading-6 text-gray-900">Products Needing Quotes</h3>
             <p className="mt-1 text-sm text-gray-500">Products assigned to you waiting for pricing</p>
           </div>
-
-          {products.filter(p => !getQuoteForProduct(p.id)).length === 0 ? (
+          {products.filter(p => p.quoted_price == null).length === 0 ? (
             <div className="p-6 text-center">
               <p className="text-gray-500">No products currently need quoting. Check back later!</p>
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
               {products
-                .filter(product => !getQuoteForProduct(product.id))
+                .filter(p => p.quoted_price == null)
                 .map((product) => (
                   <li key={product.id} className="p-4 sm:p-6 hover:bg-gray-50">
                     <div className="flex flex-col sm:flex-row">
                       <div className="sm:flex-shrink-0 mb-4 sm:mb-0">
-                        <img 
-                          src={product.imageURLs[0]} 
+                        <img
+                          src={product.imageURLs[0]}
                           alt={product.name}
-                          className="h-32 w-32 object-cover rounded-md border border-gray-200" 
+                          className="h-32 w-32 object-cover rounded-md border border-gray-200"
                         />
                       </div>
                       <div className="sm:ml-6 flex-1">
@@ -118,24 +111,22 @@ export default function VendorDashboard() {
             <p className="mt-1 text-sm text-gray-500">Quotes you've already provided</p>
           </div>
 
-          {quotes.length === 0 ? (
+          {products.filter(product => product.quoted_price != null).length === 0 ? (
             <div className="p-6 text-center">
               <p className="text-gray-500">You haven't submitted any quotes yet.</p>
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {quotes.map((quote) => {
-                const product = products.find(p => p.id === quote.productId);
-                if (!product) return null;
-                
-                return (
-                  <li key={quote.id} className="p-4 sm:p-6 hover:bg-gray-50">
+              {products
+                .filter(product => product.quoted_price != null)
+                .map(product => (
+                  <li key={product.id} className="p-4 sm:p-6 hover:bg-gray-50">
                     <div className="flex flex-col sm:flex-row">
                       <div className="sm:flex-shrink-0 mb-4 sm:mb-0">
-                        <img 
-                          src={product.imageURLs[0]} 
+                        <img
+                          src={product.imageURLs[0]}
                           alt={product.name}
-                          className="h-32 w-32 object-cover rounded-md border border-gray-200" 
+                          className="h-32 w-32 object-cover rounded-md border border-gray-200"
                         />
                       </div>
                       <div className="sm:ml-6 flex-1">
@@ -146,7 +137,7 @@ export default function VendorDashboard() {
                               Quoted
                             </span>
                             <span className="text-sm text-gray-500">
-                              {new Date(quote.createdAt).toLocaleDateString()}
+                              {new Date(product.created_at).toLocaleDateString()}
                             </span>
                           </div>
                         </div>
@@ -154,16 +145,18 @@ export default function VendorDashboard() {
                         <div className="mt-2 grid grid-cols-2 gap-4">
                           <div>
                             <span className="text-sm font-medium text-gray-700">Your Quote:</span>
-                            <span className="ml-2 text-sm text-gray-900">${quote.price.toFixed(2)}</span>
+                            <span className="ml-2 text-sm text-gray-900">${product.quoted_price.toFixed(2)}</span>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-700">Customer:</span>
                             <span className="ml-2 text-sm text-gray-900">{product.customerName}</span>
                           </div>
                         </div>
-                        <p className="mt-2 text-sm text-gray-700">
-                          <span className="font-medium">Your Notes:</span> {quote.notes}
-                        </p>
+                        {/* {product.quote_notes && (
+                          <p className="mt-2 text-sm text-gray-700">
+                            <span className="font-medium">Your Notes:</span> {product.quote_notes}
+                          </p>
+                        )} */}
                         <div className="mt-4 flex justify-end">
                           <Link to={`/product/${product.id}/quote/edit`}>
                             <Button variant="outline" size="sm">Edit Quote</Button>
@@ -172,8 +165,7 @@ export default function VendorDashboard() {
                       </div>
                     </div>
                   </li>
-                );
-              })}
+                ))}
             </ul>
           )}
         </div>

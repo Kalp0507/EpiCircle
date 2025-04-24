@@ -17,6 +17,7 @@ export interface Product {
   imageURLs: string[];
   customer_id: string;
   customerName: string;
+  quoted_price: number;
   vendor_ids: string[];
   created_at: string;
 }

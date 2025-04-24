@@ -40,7 +40,7 @@ const App = () => (
               } 
             />
             <Route 
-              path="/quotes" 
+              path="/product/:id/quote" 
               element={
                 <AuthGuard allowedRoles={["vendor"]}>
                   <QuotesPage />
