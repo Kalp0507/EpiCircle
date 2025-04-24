@@ -17,6 +17,9 @@ export default {
           light: '#E5DEFF',
           darker: '#6E59A5'
         },
+        border: {
+          DEFAULT: 'hsl(240, 5.9%, 90%)',
+        },
       },
       borderRadius: {
         lg: '1rem',
@@ -27,3 +30,4 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
