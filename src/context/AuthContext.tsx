@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Create new user
-      const newUser: User & { password: string } = {
+      const newUser = {
         id: `user_${Date.now()}`,
         name: userData.name,
         phone: userData.phone,

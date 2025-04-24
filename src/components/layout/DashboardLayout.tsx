@@ -12,14 +12,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   
   let roleColor;
   switch(currentUser?.role) {
-    case "customer":
-      roleColor = "from-purple to-purple-dark";
-      break;
     case "vendor":
       roleColor = "from-blue-500 to-blue-700";
       break;
     case "intern":
       roleColor = "from-green-500 to-green-700";
+      break;
+    case "admin":
+      roleColor = "from-purple to-purple-dark";
       break;
     default:
       roleColor = "from-gray-500 to-gray-700";

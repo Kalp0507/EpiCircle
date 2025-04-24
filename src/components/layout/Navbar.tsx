@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -31,7 +32,7 @@ export default function Navbar() {
                 Dashboard
               </Link>
               
-              {currentUser.role === "customer" && (
+              {currentUser.role === "intern" && (
                 <Link to="/new-product" className="text-gray-700 hover:text-purple transition-colors">
                   New Product
                 </Link>
@@ -43,9 +44,9 @@ export default function Navbar() {
                 </Link>
               )}
               
-              {currentUser.role === "intern" && (
-                <Link to="/overview" className="text-gray-700 hover:text-purple transition-colors">
-                  Overview
+              {currentUser.role === "admin" && (
+                <Link to="/admin" className="text-gray-700 hover:text-purple transition-colors">
+                  Admin Panel
                 </Link>
               )}
             </div>

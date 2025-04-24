@@ -12,7 +12,6 @@ export default function SignIn() {
   const { signIn } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("vendor"); // Just for UI display
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
