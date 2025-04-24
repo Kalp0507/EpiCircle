@@ -2,7 +2,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import DarkModeToggle from "./DarkModeToggle";
 
 export default function Navbar() {
   const { currentUser, signOut } = useAuth();
@@ -16,7 +15,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+    <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center">
         <Link to="/" className="flex items-center gap-2">
           <span className="bg-gradient-to-r from-purple to-purple-dark bg-clip-text text-transparent text-2xl font-bold">BidBoost</span>
@@ -24,7 +23,6 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center space-x-4">
-        <DarkModeToggle />
         {currentUser ? (
           <>
             <div className="hidden md:flex items-center gap-6 mr-4">
