@@ -21,6 +21,7 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
   const [isResending, setIsResending] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
+  const [otpError, setOtpError] = useState<string | null>(null);
   
   // For development - get the OTP from sessionStorage
   useEffect(() => {
@@ -28,6 +29,13 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
     if (storedData) {
       const { otp } = JSON.parse(storedData);
       setDevOtp(otp);
+      
+      // Show a toast notification with the OTP in development
+      toast({
+        title: "Development Mode",
+        description: `Your OTP is: ${otp}`,
+        variant: "default",
+      });
     }
     
     // Set up countdown for resend button
@@ -46,6 +54,7 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
   const handleResend = async () => {
     setIsResending(true);
     setCountdown(60);
+    setOtpError(null);
     try {
       const result = await onResend();
       toast({
@@ -59,10 +68,11 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
         const { otp } = JSON.parse(storedData);
         setDevOtp(otp);
       }
-    } catch (error) {
+    } catch (error: any) {
+      setOtpError(error.message || "Failed to resend code");
       toast({
         title: "Failed to resend code",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -70,6 +80,7 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
     }
   };
 
+  // Format phone number for display (privacy)
   const maskedPhone = phoneNumber ? phoneNumber.replace(/(\d)(?=\d{4})/g, "*") : "";
 
   return (
@@ -79,6 +90,12 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
         <p className="text-sm text-gray-500">
           We've sent a 6-digit code to {maskedPhone}
         </p>
+        
+        {otpError && (
+          <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded-md">
+            <p className="text-xs text-red-800">{otpError}</p>
+          </div>
+        )}
         
         {/* For development purposes only - show the OTP */}
         {devOtp && (

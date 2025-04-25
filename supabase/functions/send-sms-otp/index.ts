@@ -34,11 +34,30 @@ serve(async (req) => {
       );
     }
 
+    // Check if Twilio credentials are available
+    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+      console.error("Missing Twilio credentials");
+      return new Response(
+        JSON.stringify({
+          error: "SMS service configuration is incomplete",
+          details: "Twilio credentials are missing",
+          development: true,
+          otp
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     // Convert phone number to E.164 format if needed
     let formattedPhone = phoneNumber;
     if (!phoneNumber.startsWith("+")) {
       formattedPhone = `+${phoneNumber}`;
     }
+    
+    console.log(`Attempting to send OTP to: ${formattedPhone} from ${twilioPhoneNumber}`);
 
     // Send SMS via Twilio
     const twilioResponse = await fetch(
@@ -60,11 +79,16 @@ serve(async (req) => {
     const twilioData = await twilioResponse.json();
     
     // Log the Twilio response for debugging
-    console.log("Twilio API response:", twilioData);
+    console.log("Twilio API response:", JSON.stringify(twilioData));
 
     if (!twilioResponse.ok) {
       return new Response(
-        JSON.stringify({ error: "Failed to send SMS", details: twilioData }),
+        JSON.stringify({ 
+          error: "Failed to send SMS", 
+          details: twilioData,
+          twilioStatus: twilioResponse.status,
+          phoneFormat: formattedPhone,
+        }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -83,7 +107,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in edge function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ 
+        error: error.message || "Internal server error",
+        stack: error.stack
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

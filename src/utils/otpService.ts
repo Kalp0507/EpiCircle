@@ -50,8 +50,17 @@ export const sendOTP = async (phoneNumber: string): Promise<string> => {
         throw new Error(error.message || "Failed to send verification code");
       }
 
+      // Log response for debugging
       console.log("OTP send response:", data);
-    } catch (functionError) {
+      
+      // If the response contains an error but also includes 'development' flag
+      // This means the edge function is in development mode or has issues with Twilio
+      if (data && data.error && data.development) {
+        console.warn("Using development mode for OTP");
+        // We already stored the OTP in sessionStorage, so verification will still work
+      }
+      
+    } catch (functionError: any) {
       // Log the error but don't throw - the OTP is already stored in session storage
       console.error("Edge function error:", functionError);
       console.log("Development mode: OTP generation continuing despite edge function error");
