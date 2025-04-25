@@ -1,5 +1,5 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,30 +25,12 @@ serve(async (req) => {
     const { phoneNumber, otp }: SMSRequestPayload = await req.json();
 
     if (!phoneNumber || !otp) {
-      return new Response(
-        JSON.stringify({ error: "Phone number and OTP are required" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+      throw new Error("Phone number and OTP are required");
     }
 
     // Check if Twilio credentials are available
     if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      console.error("Missing Twilio credentials");
-      return new Response(
-        JSON.stringify({
-          error: "SMS service configuration is incomplete",
-          details: "Twilio credentials are missing",
-          development: true,
-          otp
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+      throw new Error("SMS service configuration is incomplete");
     }
 
     // Convert phone number to E.164 format if needed
@@ -57,7 +39,7 @@ serve(async (req) => {
       formattedPhone = `+${phoneNumber}`;
     }
     
-    console.log(`Attempting to send OTP to: ${formattedPhone} from ${twilioPhoneNumber}`);
+    console.log(`Sending OTP to: ${formattedPhone}`);
 
     // Send SMS via Twilio
     const twilioResponse = await fetch(
@@ -78,22 +60,9 @@ serve(async (req) => {
 
     const twilioData = await twilioResponse.json();
     
-    // Log the Twilio response for debugging
-    console.log("Twilio API response:", JSON.stringify(twilioData));
-
     if (!twilioResponse.ok) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Failed to send SMS", 
-          details: twilioData,
-          twilioStatus: twilioResponse.status,
-          phoneFormat: formattedPhone,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+      console.error("Twilio API error:", twilioData);
+      throw new Error(twilioData.message || "Failed to send SMS");
     }
 
     return new Response(
@@ -107,10 +76,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in edge function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Internal server error",
-        stack: error.stack
-      }),
+      JSON.stringify({ error: error.message || "Failed to send SMS" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

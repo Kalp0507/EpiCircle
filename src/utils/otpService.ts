@@ -32,44 +32,18 @@ export const verifyOTP = (phoneNumber: string, inputOTP: string): boolean => {
 };
 
 // Send OTP via Twilio using our Supabase Edge Function
-export const sendOTP = async (phoneNumber: string): Promise<string> => {
-  try {
-    const otp = generateOTP();
-    
-    // Store OTP in sessionStorage for verification
-    storeOTP(phoneNumber, otp);
+export const sendOTP = async (phoneNumber: string): Promise<void> => {
+  const otp = generateOTP();
+  
+  // Store OTP first
+  storeOTP(phoneNumber, otp);
 
-    // Try to send via Edge Function
-    try {
-      const { data, error } = await supabase.functions.invoke("send-sms-otp", {
-        body: { phoneNumber, otp },
-      });
+  // Send via Edge Function
+  const { data, error } = await supabase.functions.invoke("send-sms-otp", {
+    body: { phoneNumber, otp }
+  });
 
-      if (error) {
-        console.error("Error sending OTP:", error);
-        throw new Error(error.message || "Failed to send verification code");
-      }
-
-      // Log response for debugging
-      console.log("OTP send response:", data);
-      
-      // If the response contains an error but also includes 'development' flag
-      // This means the edge function is in development mode or has issues with Twilio
-      if (data && data.error && data.development) {
-        console.warn("Using development mode for OTP");
-        // We already stored the OTP in sessionStorage, so verification will still work
-      }
-      
-    } catch (functionError: any) {
-      // Log the error but don't throw - the OTP is already stored in session storage
-      console.error("Edge function error:", functionError);
-      console.log("Development mode: OTP generation continuing despite edge function error");
-    }
-    
-    // Return the OTP for development purposes
-    return otp;
-  } catch (error: any) {
-    console.error("Error in sendOTP:", error);
-    throw new Error(error.message || "Failed to send verification code");
+  if (error || (data && data.error)) {
+    throw new Error(error?.message || data?.error || "Failed to send verification code");
   }
 };
