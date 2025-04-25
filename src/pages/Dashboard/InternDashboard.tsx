@@ -52,6 +52,14 @@ export default function InternDashboard() {
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
+  // New state for customer selection/creation
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [addingCustomer, setAddingCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", location: "" });
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+
   // Filter products for this intern
   const internProducts = mockProducts.filter(p => 
     p.intern_id === currentUser?.id || p.internName === currentUser?.name
@@ -177,8 +185,152 @@ export default function InternDashboard() {
     );
   };
 
+  // Handler for adding a new customer
+  const handleAddCustomer = (e: React.FormEvent) => {
+    e.preventDefault();
+    const customer = {
+      id: (customers.length + 1).toString(),
+      name: newCustomer.name,
+      phone: newCustomer.phone,
+      location: newCustomer.location,
+      created_at: new Date().toISOString()
+    };
+    setCustomers([...customers, customer]);
+    setSelectedCustomer(customer);
+    setAddingCustomer(false);
+    setShowCustomerModal(false);
+    setNewCustomer({ name: "", phone: "", location: "" });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Customer Selection Modal */}
+      {showCustomerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Select Customer</h2>
+            {!addingCustomer ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Search customer by name or phone"
+                  value={customerSearch}
+                  onChange={e => setCustomerSearch(e.target.value)}
+                  className="w-full mb-3 px-3 py-2 border rounded"
+                />
+                <ul className="max-h-40 overflow-y-auto mb-3">
+                  {customers
+                    .filter(c =>
+                      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                      c.phone.includes(customerSearch)
+                    )
+                    .map(c => (
+                      <li
+                        key={c.id}
+                        className="py-2 px-2 hover:bg-gray-100 cursor-pointer rounded"
+                        onClick={() => {
+                          setSelectedCustomer(c);
+                          setShowCustomerModal(false);
+                        }}
+                      >
+                        <span className="font-semibold">{c.name}</span> ({c.phone}) - {c.location}
+                      </li>
+                    ))}
+                </ul>
+                <button
+                  className="text-purple-600 hover:underline"
+                  onClick={() => setAddingCustomer(true)}
+                >
+                  + Add New Customer
+                </button>
+                <button
+                  className="ml-4 text-gray-500 hover:underline"
+                  onClick={() => setShowCustomerModal(false)}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleAddCustomer}>
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={newCustomer.name}
+                  onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                  required
+                  className="w-full mb-2 px-3 py-2 border rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Phone"
+                  value={newCustomer.phone}
+                  onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  required
+                  className="w-full mb-2 px-3 py-2 border rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Location"
+                  value={newCustomer.location}
+                  onChange={e => setNewCustomer({ ...newCustomer, location: e.target.value })}
+                  required
+                  className="w-full mb-2 px-3 py-2 border rounded"
+                />
+                <div className="flex justify-between">
+                  <button
+                    type="submit"
+                    className="bg-purple-600 text-white px-4 py-2 rounded"
+                  >
+                    Add Customer
+                  </button>
+                  <button
+                    type="button"
+                    className="text-gray-500 hover:underline"
+                    onClick={() => setAddingCustomer(false)}
+                  >
+                    Back
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Add button to open customer selection modal */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome, {currentUser?.name}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage customer products
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="bg-purple-600 text-white px-4 py-2 rounded flex items-center"
+            onClick={() => setShowCustomerModal(true)}
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Select/Add Customer
+          </button>
+          <Link to="/new-product">
+            <Button variant="purple">
+              <Plus className="w-5 h-5 mr-2" />
+              Add New Product
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Optionally, show selected customer */}
+      {selectedCustomer && (
+        <div className="bg-green-50 border border-green-200 rounded p-3 mb-4">
+          <span className="font-semibold">Selected Customer:</span> {selectedCustomer.name} ({selectedCustomer.phone}) - {selectedCustomer.location}
+        </div>
+      )}
+
       {currentView === 'list' ? (
         <>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

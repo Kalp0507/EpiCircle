@@ -13,7 +13,7 @@ interface FormData {
   vendorIds: string[];
 }
 
-type Step = 'details' | 'images' | 'vendors' | 'review';
+type Step = 'customer' | 'details' | 'images' | 'vendors' | 'review';
 
 type Vendor = {
   id: string;
@@ -24,7 +24,11 @@ type Vendor = {
 export default function NewProduct() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<Step>('details');
+  const [currentStep, setCurrentStep] = useState<Step>('customer');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]); // Fetch or mock as needed
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", location: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
@@ -137,19 +141,23 @@ export default function NewProduct() {
 
 
   const nextStep = () => {
-    if (currentStep === 'details') setCurrentStep('images');
+    if (currentStep === 'customer') setCurrentStep('details');
+    else if (currentStep === 'details') setCurrentStep('images');
     else if (currentStep === 'images') setCurrentStep('vendors');
     else if (currentStep === 'vendors') setCurrentStep('review');
   };
 
   const prevStep = () => {
-    if (currentStep === 'images') setCurrentStep('details');
+    if (currentStep === 'details') setCurrentStep('customer');
+    else if (currentStep === 'images') setCurrentStep('details');
     else if (currentStep === 'vendors') setCurrentStep('images');
     else if (currentStep === 'review') setCurrentStep('vendors');
   };
 
   const isCurrentStepValid = () => {
-    if (currentStep === 'details') {
+    if (currentStep === 'customer') {
+      return selectedCustomer !== null;
+    } else if (currentStep === 'details') {
       return formData.name.trim() !== '' && formData.description.trim() !== '';
     } else if (currentStep === 'images') {
       return formData.images.length > 0;
@@ -174,24 +182,19 @@ export default function NewProduct() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-center justify-between">
             <div className="w-full flex items-center">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'details' || currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
-                1
-              </div>
-              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'images' || currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
-                2
-              </div>
-              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'vendors' || currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
-                3
-              </div>
-              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${currentStep === 'review' ? 'bg-purple' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>
-                4
-              </div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['customer','details','images','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>1</div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['details','images','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['details','images','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>2</div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['images','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['images','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>3</div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>4</div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>5</div>
             </div>
           </div>
           <div className="flex flex-wrap justify-between mt-2 text-sm text-gray-600 space-x-0">
+            <span className={currentStep === 'customer' ? 'text-purple font-medium' : ''}>Customer</span>
             <span className={currentStep === 'details' ? 'text-purple font-medium' : ''}>Details</span>
             <span className={currentStep === 'images' ? 'text-purple font-medium' : ''}>Images</span>
             <span className={currentStep === 'vendors' ? 'text-purple font-medium' : ''}>Vendors</span>
@@ -201,6 +204,77 @@ export default function NewProduct() {
 
         <div className="bg-white dark:bg-gray-900 shadow rounded-lg overflow-hidden">
           <div className="p-4 sm:p-6">
+            {currentStep === 'customer' && (
+              <div className="space-y-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Select or Add Customer</h2>
+                {/* Customer selection UI */}
+                <div>
+                  <select
+                    value={selectedCustomer?.id || ""}
+                    onChange={e => {
+                      const customer = customers.find(c => c.id === e.target.value);
+                      setSelectedCustomer(customer || null);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Select a customer</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="mt-2 text-purple underline"
+                    onClick={() => setShowAddCustomer(true)}
+                  >
+                    + Add New Customer
+                  </button>
+                </div>
+                {showAddCustomer && (
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      const customer = {
+                        id: (customers.length + 1).toString(),
+                        ...newCustomer,
+                        created_at: new Date().toISOString()
+                      };
+                      setCustomers([...customers, customer]);
+                      setSelectedCustomer(customer);
+                      setShowAddCustomer(false);
+                      setNewCustomer({ name: "", phone: "", location: "" });
+                    }}
+                    className="mt-4 space-y-2"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={newCustomer.name}
+                      onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Phone"
+                      value={newCustomer.phone}
+                      onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      value={newCustomer.location}
+                      onChange={e => setNewCustomer({ ...newCustomer, location: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                    <button type="submit" className="bg-purple text-white px-4 py-2 rounded-md">Add Customer</button>
+                  </form>
+                )}
+              </div>
+            )}
             {currentStep === 'details' && (
               <div className="space-y-6">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">Product Details</h2>
