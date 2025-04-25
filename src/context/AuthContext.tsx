@@ -1,33 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, UserRole } from "@/types";
-
-// Mock data for users
-const mockUsers = [
-  {
-    id: "1",
-    name: "John Vendor",
-    phone: "+1234567890",
-    role: "vendor" as UserRole,
-    location: "New York",
-    password: "password"
-  },
-  {
-    id: "2",
-    name: "Alice Intern",
-    phone: "+1987654321",
-    role: "intern" as UserRole,
-    location: "Chicago",
-    password: "password"
-  },
-  {
-    id: "3",
-    name: "Bob Admin",
-    phone: "+1122334455",
-    role: "admin" as UserRole,
-    password: "password"
-  },
-];
+import { supabase } from "@/supabaseClient";
+import bcrypt from "bcryptjs";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -52,14 +26,12 @@ const defaultContext: AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType>(defaultContext);
-
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Check for stored user on initial load
+
   useEffect(() => {
     const storedUser = localStorage.getItem("bidboost_user");
     if (storedUser) {
@@ -76,29 +48,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }) => {
     setIsLoading(true);
     try {
-      // Check if phone already exists
-      const existingUser = mockUsers.find(user => user.phone === userData.phone);
-      if (existingUser) {
-        throw new Error("Phone number already registered");
-      }
-      
-      // Create new user
-      const newUser = {
-        id: `user_${Date.now()}`,
-        name: userData.name,
-        phone: userData.phone,
-        role: userData.role,
-        location: userData.location,
-        password: userData.password
-      };
-      
-      mockUsers.push(newUser);
-      
-      // Set current user (without password)
+      const { data: existingUsers, error: fetchError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("phone", userData.phone);
+
+      if (fetchError) throw fetchError;
+      if (existingUsers.length > 0) throw new Error("Phone number already registered");
+
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+      const { data: newUser, error: insertError } = await supabase
+        .from("users")
+        .insert({
+          name: userData.name,
+          phone: userData.phone,
+          password: hashedPassword,
+          role: userData.role,
+          location: userData.location || null,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
       const { password, ...userWithoutPassword } = newUser;
       setCurrentUser(userWithoutPassword);
       localStorage.setItem("bidboost_user", JSON.stringify(userWithoutPassword));
-      
     } catch (error) {
       console.error("Sign up error:", error);
       throw error;
@@ -106,20 +82,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
-  
+
   const signIn = async (phone: string, password: string) => {
     setIsLoading(true);
     try {
-      const user = mockUsers.find(user => user.phone === phone && user.password === password);
-      if (!user) {
-        throw new Error("Invalid phone number or password");
-      }
-      
-      // Set current user (without password)
-      const { password: _, ...userWithoutPassword } = user;
+      const { data: users, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("phone", phone)
+        .single();
+
+      if (error || !users) throw new Error("Invalid phone number or password");
+
+      const isMatch = await bcrypt.compare(password, users.password);
+      if (!isMatch) throw new Error("Invalid phone number or password");
+
+      const { password: _, ...userWithoutPassword } = users;
       setCurrentUser(userWithoutPassword);
       localStorage.setItem("bidboost_user", JSON.stringify(userWithoutPassword));
-      
     } catch (error) {
       console.error("Sign in error:", error);
       throw error;
@@ -141,13 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value = {
-    currentUser,
-    isLoading,
-    signIn,
-    signUp,
-    signOut,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ currentUser, isLoading, signIn, signUp, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
