@@ -34,6 +34,20 @@ serve(async (req) => {
       );
     }
 
+    // For development purposes - simulate successful SMS sending without contacting Twilio
+    // This helps during development and prevents errors when Twilio credentials aren't set up
+    console.log(`[Development] Would send OTP ${otp} to ${phoneNumber}`);
+    
+    // Return a successful response
+    return new Response(
+      JSON.stringify({ message: "OTP sent successfully (development mode)" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+
+    /* Uncomment this section when ready to use actual Twilio integration
     // Convert phone number to E.164 format if needed
     let formattedPhone = phoneNumber;
     if (!phoneNumber.startsWith("+")) {
@@ -77,10 +91,11 @@ serve(async (req) => {
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+        }
+      );
+    */
   } catch (error) {
-    console.error("Error sending SMS:", error);
+    console.error("Error in edge function:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),
       {

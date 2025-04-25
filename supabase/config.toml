@@ -31,4 +31,4 @@ site_url = "http://localhost:3000"
 
 [functions]
 [functions.send-sms-otp]
-verify_jwt = true
+verify_jwt = false

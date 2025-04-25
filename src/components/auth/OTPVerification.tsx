@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   InputOTP,
@@ -7,17 +7,36 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { toast } from "@/hooks/use-toast";
+import { generateOTP } from "@/utils/otpService";
 
 interface OTPVerificationProps {
   onVerify: (otp: string) => void;
-  onResend: () => void;
+  onResend: () => Promise<unknown>;
   isLoading: boolean;
   phoneNumber: string;
 }
 
 const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVerificationProps) => {
-  const [otp, setOtp] = React.useState("");
-  const [isResending, setIsResending] = React.useState(false);
+  const [otp, setOtp] = useState("");
+  const [isResending, setIsResending] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(60);
+  
+  // For development - get the OTP from sessionStorage
+  useEffect(() => {
+    const storedData = sessionStorage.getItem(`otp_${phoneNumber}`);
+    if (storedData) {
+      const { otp } = JSON.parse(storedData);
+      setDevOtp(otp);
+    }
+    
+    // Set up countdown for resend button
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [phoneNumber, isResending]);
   
   const handleComplete = (value: string) => {
     setOtp(value);
@@ -26,12 +45,20 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
   
   const handleResend = async () => {
     setIsResending(true);
+    setCountdown(60);
     try {
-      await onResend();
+      const result = await onResend();
       toast({
         title: "Code resent",
         description: "A new verification code has been sent to your phone.",
       });
+      
+      // Try to get the new OTP from sessionStorage
+      const storedData = sessionStorage.getItem(`otp_${phoneNumber}`);
+      if (storedData) {
+        const { otp } = JSON.parse(storedData);
+        setDevOtp(otp);
+      }
     } catch (error) {
       toast({
         title: "Failed to resend code",
@@ -52,6 +79,15 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
         <p className="text-sm text-gray-500">
           We've sent a 6-digit code to {maskedPhone}
         </p>
+        
+        {/* For development purposes only - show the OTP */}
+        {devOtp && (
+          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded-md">
+            <p className="text-xs text-yellow-800 font-mono">
+              Development Mode: Your OTP is <span className="font-bold">{devOtp}</span>
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-center">
@@ -77,10 +113,10 @@ const OTPVerification = ({ onVerify, onResend, isLoading, phoneNumber }: OTPVeri
         <Button
           variant="link"
           onClick={handleResend}
-          disabled={isLoading || isResending}
+          disabled={isLoading || isResending || countdown > 0}
           className="text-sm text-purple hover:text-purple-dark"
         >
-          {isResending ? "Sending..." : "Resend code"}
+          {isResending ? "Sending..." : countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
         </Button>
       </div>
     </div>
