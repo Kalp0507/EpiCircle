@@ -26,6 +26,13 @@ type Vendor = {
   phone: string;
 };
 
+type Customers = {
+  id: string;
+  name: string;
+  phone: string;
+  location: string;
+};
+
 export default function NewProduct() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -42,12 +49,10 @@ export default function NewProduct() {
     name: string;
     phone: string;
     location: string;
-    created_at: string;
   }[]>([]); // Fetch or mock as needed
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", location: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [formData, setFormData] = useState<FormData>({
     products: [{
       name: "",
@@ -56,28 +61,47 @@ export default function NewProduct() {
     }],
     vendorIds: [],
   });
-
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
+  const currentIntern = localStorage.getItem('bidboost_user');
+  const currentInternObj = currentIntern ? JSON.parse(currentIntern) : null;
 
   useEffect(() => {
+
+    const fetchCustomers = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name, phone, location')
+        .eq('added_by', currentInternObj?.id);
+
+      if (error) {
+        setLoading(false);
+        return;
+      }
+
+      setCustomers((data as Customers[]) || []);
+      setLoading(false);
+    }
+
     const fetchVendors = async () => {
-      setLoadingVendors(true);
+      setLoading(true);
       const { data, error } = await supabase
         .from('users')
         .select('id, name, phone')
         .eq('role', 'vendor');
 
       if (error) {
-        setLoadingVendors(false);
+        setLoading(false);
         return;
       }
 
       setVendors((data as Vendor[]) || []);
-      setLoadingVendors(false);
+      setLoading(false);
     };
 
+    fetchCustomers();
     fetchVendors();
   }, []);
 
@@ -147,7 +171,7 @@ export default function NewProduct() {
   const handleAddAnotherProduct = () => {
     // Validate current product first
     if (!isCurrentProductValid()) return;
-    
+
     // Add a new empty product and set it as current
     setFormData(prev => ({
       ...prev,
@@ -162,7 +186,7 @@ export default function NewProduct() {
 
   const handleRemoveProduct = (index: number) => {
     if (formData.products.length <= 1) return; // Don't remove the last product
-    
+
     setFormData(prev => {
       const updatedProducts = prev.products.filter((_, i) => i !== index);
       return {
@@ -170,7 +194,7 @@ export default function NewProduct() {
         products: updatedProducts
       };
     });
-    
+
     // Adjust current index if needed
     if (currentProductIndex >= index && currentProductIndex > 0) {
       setCurrentProductIndex(currentProductIndex - 1);
@@ -180,6 +204,9 @@ export default function NewProduct() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+
+      const productsIDs = [];
+
       // Process each product
       for (const product of formData.products) {
         // Upload images and get their URLs
@@ -187,19 +214,50 @@ export default function NewProduct() {
         const uploadedImageUrls = await Promise.all(
           imageFiles.map(file => uploadImageAndGetUrl(file, currentUser.id))
         );
-  
+
         const payload = {
           name: product.name,
           description: product.description,
-          imageURLs: uploadedImageUrls,
-          vendor_ids: formData.vendorIds,
-          customer_id: selectedCustomer?.id,
-          intern_id: currentUser?.id,
-          created_at: new Date().toISOString()
+          image_urls: uploadedImageUrls,
         };
-  
-        const { error } = await supabase.from("products").insert([payload]);
+
+        const { data, error } = await supabase
+          .from("products")
+          .insert([payload])
+          .select(); // Ensures data is typed as an array of inserted rows
+
         if (error) throw error;
+
+        if (data && Array.isArray(data) && data.length > 0 && data[0].id) {
+          productsIDs.push(data[0].id);
+        }
+      }
+
+      console.log(formData, productsIDs)
+
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_id: selectedCustomer.id,
+          intern_id: currentInternObj.id,
+          product_ids: productsIDs,
+          vendor_ids: formData.vendorIds
+        })
+        .select()
+
+      if (orderError) throw orderError;
+
+      for (const v of formData.vendorIds) {
+        for (const p of productsIDs) {
+          const { data: prodVendorData, error: prodVendorError } = await supabase
+            .from('product_vendors')
+            .insert({
+              vendor_id: v,
+              product_id: p
+            })
+
+          if (prodVendorError) throw prodVendorError;
+        }
       }
 
       navigate("/dashboard", {
@@ -230,8 +288,8 @@ export default function NewProduct() {
   const isCurrentProductValid = () => {
     const currentProduct = formData.products[currentProductIndex];
     return (
-      currentProduct.name.trim() !== '' && 
-      currentProduct.description.trim() !== '' && 
+      currentProduct.name.trim() !== '' &&
+      currentProduct.description.trim() !== '' &&
       currentProduct.images.length > 0
     );
   };
@@ -241,9 +299,9 @@ export default function NewProduct() {
       return selectedCustomer !== null;
     } else if (currentStep === 'product-details') {
       // All products must be valid
-      return formData.products.every(product => 
-        product.name.trim() !== '' && 
-        product.description.trim() !== '' && 
+      return formData.products.every(product =>
+        product.name.trim() !== '' &&
+        product.description.trim() !== '' &&
         product.images.length > 0
       );
     } else if (currentStep === 'vendors') {
@@ -251,6 +309,36 @@ export default function NewProduct() {
     }
     return true;
   };
+
+  const handleAddNewCustomer = async (e) => {
+    e.preventDefault();
+
+    const { name, phone, location } = newCustomer;
+
+    const { data, error } = await supabase
+      .from("customers")
+      .insert([
+        {
+          name,
+          phone,
+          location,
+          added_by: currentInternObj?.id || null, // assume you have `user` from Supabase auth
+        },
+      ])
+      .select()
+      .single(); // to get the inserted customer back
+
+    if (error) {
+      console.error("Error adding customer:", error);
+      return;
+    }
+
+    setCustomers([...customers, data]);
+    setSelectedCustomer(data);
+    setShowAddCustomer(false);
+    setNewCustomer({ name: "", phone: "", location: "" });
+  };
+
 
   return (
     <DashboardLayout>
@@ -267,11 +355,11 @@ export default function NewProduct() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-center justify-between">
             <div className="w-full flex items-center">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['customer','product-details','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>1</div>
-              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['product-details','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['product-details','vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>2</div>
-              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['vendors','review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>3</div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['customer', 'product-details', 'vendors', 'review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>1</div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['product-details', 'vendors', 'review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['product-details', 'vendors', 'review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>2</div>
+              <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['vendors', 'review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${['vendors', 'review'].indexOf(currentStep) >= 0 ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>3</div>
               <div className={`h-1 flex-1 mx-1 sm:mx-2 ${['review'].indexOf(currentStep) >= 0 ? 'bg-purple' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 'review' ? 'bg-purple text-white' : 'bg-gray-200 text-gray-600'}`}>4</div>
             </div>
@@ -295,7 +383,11 @@ export default function NewProduct() {
                     value={selectedCustomer?.id || ""}
                     onChange={e => {
                       const customer = customers.find(c => c.id === e.target.value);
-                      setSelectedCustomer(customer || null);
+                      setSelectedCustomer(
+                        customer
+                          ? { ...customer, created_at: "" }
+                          : null
+                      );
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
@@ -314,18 +406,7 @@ export default function NewProduct() {
                 </div>
                 {showAddCustomer && (
                   <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      const customer = {
-                        id: (customers.length + 1).toString(),
-                        ...newCustomer,
-                        created_at: new Date().toISOString()
-                      };
-                      setCustomers([...customers, customer]);
-                      setSelectedCustomer(customer);
-                      setShowAddCustomer(false);
-                      setNewCustomer({ name: "", phone: "", location: "" });
-                    }}
+                    onSubmit={e => handleAddNewCustomer(e)}
                     className="mt-4 space-y-2"
                   >
                     <input
@@ -357,6 +438,7 @@ export default function NewProduct() {
                 )}
               </div>
             )}
+
             {currentStep === 'product-details' && (
               <div className="space-y-6">
                 {formData.products.length > 1 && (
@@ -365,15 +447,14 @@ export default function NewProduct() {
                       <button
                         key={index}
                         onClick={() => handleSelectProduct(index)}
-                        className={`px-3 py-1 text-sm rounded-full ${
-                          currentProductIndex === index 
-                            ? 'bg-purple text-white' 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                        className={`px-3 py-1 text-sm rounded-full ${currentProductIndex === index
+                          ? 'bg-purple text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
                       >
                         Product {index + 1}
                         {formData.products.length > 1 && index !== 0 && (
-                          <button 
+                          <button
                             className="ml-2 text-xs"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -387,11 +468,11 @@ export default function NewProduct() {
                     ))}
                   </div>
                 )}
-                
+
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
                   Product Details {formData.products.length > 1 ? `(${currentProductIndex + 1}/${formData.products.length})` : ''}
                 </h2>
-                
+
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Product Name
@@ -406,7 +487,7 @@ export default function NewProduct() {
                     placeholder="e.g., Vintage Silver Coffee Set"
                   />
                 </div>
-                
+
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                     Description
@@ -421,13 +502,13 @@ export default function NewProduct() {
                     placeholder="Provide details about the product, condition, history, etc."
                   ></textarea>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Product Images
                   </label>
                   <p className="text-gray-600 text-sm mb-2">Upload images from your device. Choose at least one (max 6).</p>
-                  
+
                   <div className="flex flex-wrap gap-4 mt-2">
                     {formData.products[currentProductIndex].images.map((img, idx) => (
                       <div className="relative group" key={idx}>
@@ -460,7 +541,7 @@ export default function NewProduct() {
                       </label>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center justify-center mt-4">
                     <div className="text-sm text-gray-500">
                       {formData.products[currentProductIndex].images.length} of 6 uploaded
@@ -509,21 +590,28 @@ export default function NewProduct() {
               <div className="space-y-6">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Review & Submit</h2>
                 <p className="text-gray-600">Review your product details before submitting</p>
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <h3 className="font-medium text-gray-800 mb-2">Selected Customer</h3>
+                  <div className="flex gap-2 items-center">
+                    <p className="text-sm font-medium text-gray-700">name: </p>
+                    <p className="text-gray-900">{selectedCustomer.name}</p>
+                  </div>
+                </div>
                 {formData.products.map((product, index) => (
                   <div key={index} className="bg-gray-50 p-4 rounded-lg mb-4">
                     <h3 className="font-medium text-gray-800 mb-2">Product {index + 1}</h3>
-                    
+
                     <div className="space-y-4">
-                      <div>
+                      <div className="flex gap-2 items-center">
                         <p className="text-sm font-medium text-gray-700">Product Name</p>
                         <p className="text-gray-900">{product.name}</p>
                       </div>
-                      
-                      <div>
+
+                      <div className="flex gap-2 items-center">
                         <p className="text-sm font-medium text-gray-700">Description</p>
                         <p className="text-gray-900">{product.description}</p>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm font-medium text-gray-700">Images</p>
                         <div className="flex flex-wrap gap-2 mt-1">
@@ -541,7 +629,7 @@ export default function NewProduct() {
                     </div>
                   </div>
                 ))}
-                
+
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-medium text-gray-800 mb-2">Selected Vendors</h3>
                   <div>
@@ -567,8 +655,8 @@ export default function NewProduct() {
 
           <div className="px-4 py-4 sm:px-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row-reverse sm:justify-between gap-2">
             {currentStep === 'review' ? (
-              <Button 
-                variant="purple" 
+              <Button
+                variant="purple"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 className="w-full sm:w-auto"
@@ -576,8 +664,8 @@ export default function NewProduct() {
                 {isSubmitting ? 'Submitting...' : `Submit ${formData.products.length > 1 ? 'Products' : 'Product'}`}
               </Button>
             ) : (
-              <Button 
-                variant="purple" 
+              <Button
+                variant="purple"
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
                 className="w-full sm:w-auto"
@@ -585,10 +673,10 @@ export default function NewProduct() {
                 Continue
               </Button>
             )}
-            
+
             {currentStep === 'product-details' && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleAddAnotherProduct}
                 disabled={!isCurrentProductValid()}
                 className="w-full sm:w-auto flex items-center"
@@ -597,10 +685,10 @@ export default function NewProduct() {
                 Add Another Product
               </Button>
             )}
-            
+
             {currentStep !== 'customer' && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={prevStep}
                 className="w-full sm:w-auto"
               >

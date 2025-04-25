@@ -59,3 +59,12 @@ export interface Intern {
   location: string;
   created_at: string;
 }
+
+export interface Order {
+  id: string;
+  customer_id: string;
+  intern_id: string;
+  product_ids: string[];
+  vendor_ids: string[];
+  created_at: string;
+}
