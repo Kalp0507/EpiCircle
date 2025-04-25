@@ -22,15 +22,51 @@ serve(async (req) => {
   }
 
   try {
-    const { phoneNumber, otp }: SMSRequestPayload = await req.json();
+    console.log("Edge function invoked: send-sms-otp");
+    
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+      console.log("Request body parsed:", JSON.stringify(body));
+    } catch (e) {
+      console.error("Failed to parse request body:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    const { phoneNumber, otp }: SMSRequestPayload = body;
 
     if (!phoneNumber || !otp) {
-      throw new Error("Phone number and OTP are required");
+      console.error("Missing required parameters:", { phoneNumber: !!phoneNumber, otp: !!otp });
+      return new Response(
+        JSON.stringify({ error: "Phone number and OTP are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Check if Twilio credentials are available
     if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      throw new Error("SMS service configuration is incomplete");
+      console.error("Twilio credentials missing:", {
+        hasSid: !!twilioAccountSid,
+        hasToken: !!twilioAuthToken,
+        hasPhone: !!twilioPhoneNumber
+      });
+      return new Response(
+        JSON.stringify({ error: "SMS service configuration is incomplete" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Convert phone number to E.164 format if needed
@@ -39,39 +75,61 @@ serve(async (req) => {
       formattedPhone = `+${phoneNumber}`;
     }
     
-    console.log(`Sending OTP to: ${formattedPhone}`);
+    console.log(`Sending OTP to: ${formattedPhone} from ${twilioPhoneNumber}`);
 
     // Send SMS via Twilio
-    const twilioResponse = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-        },
-        body: new URLSearchParams({
-          From: twilioPhoneNumber,
-          To: formattedPhone,
-          Body: `Your verification code is: ${otp}`,
-        }),
-      }
-    );
+    try {
+      const twilioResponse = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+          },
+          body: new URLSearchParams({
+            From: twilioPhoneNumber,
+            To: formattedPhone,
+            Body: `Your verification code is: ${otp}`,
+          }),
+        }
+      );
 
-    const twilioData = await twilioResponse.json();
-    
-    if (!twilioResponse.ok) {
-      console.error("Twilio API error:", twilioData);
-      throw new Error(twilioData.message || "Failed to send SMS");
+      const twilioData = await twilioResponse.json();
+      
+      console.log("Twilio API response status:", twilioResponse.status);
+      
+      if (!twilioResponse.ok) {
+        console.error("Twilio API error:", JSON.stringify(twilioData));
+        return new Response(
+          JSON.stringify({
+            error: twilioData.message || "Failed to send SMS",
+            details: twilioData
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ message: "SMS sent successfully", sid: twilioData.sid }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    } catch (fetchError) {
+      console.error("Error calling Twilio API:", fetchError);
+      return new Response(
+        JSON.stringify({ error: "Failed to communicate with SMS provider", details: fetchError.message }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
-
-    return new Response(
-      JSON.stringify({ message: "SMS sent successfully", sid: twilioData.sid }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
 
   } catch (error) {
     console.error("Error in edge function:", error);
