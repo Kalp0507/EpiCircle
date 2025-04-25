@@ -1,11 +1,12 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { UserRole } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Phone, Lock } from "lucide-react";
 import OTPVerification from "@/components/auth/OTPVerification";
+import { sendOTP, verifyOTP } from "@/utils/otpService";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -15,7 +16,6 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showOTP, setShowOTP] = useState(false);
-  const [verificationId, setVerificationId] = useState("");
 
   const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +23,10 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      // Simulate sending OTP (replace with your actual OTP sending logic)
+      // Send real OTP via Twilio
+      await sendOTP(phone);
+      
       setShowOTP(true);
-      setVerificationId(`mock-${Date.now()}`); // Replace with actual verification ID
       toast({
         title: "Verification code sent",
         description: "Please check your phone for the verification code.",
@@ -41,8 +42,10 @@ export default function SignIn() {
   const handleVerifyOTP = async (otp: string) => {
     setIsLoading(true);
     try {
-      // Verify OTP here (replace with your actual verification logic)
-      if (otp === "123456") { // This is just for demo, replace with actual verification
+      // Verify OTP against stored value
+      const isValid = verifyOTP(phone, otp);
+      
+      if (isValid) {
         await signIn(phone, password);
         toast({
           title: "Sign in successful",
@@ -60,12 +63,14 @@ export default function SignIn() {
     }
   };
 
-  const handleResendOTP = () => {
-    // Implement resend logic here
-    toast({
-      title: "Code resent",
-      description: "A new verification code has been sent to your phone.",
-    });
+  const handleResendOTP = async () => {
+    try {
+      await sendOTP(phone);
+      return true;
+    } catch (error) {
+      console.error("Failed to resend OTP:", error);
+      throw error;
+    }
   };
 
   return (
@@ -160,10 +165,11 @@ export default function SignIn() {
               onVerify={handleVerifyOTP}
               onResend={handleResendOTP}
               isLoading={isLoading}
+              phoneNumber={phone}
             />
           )}
         </div>
       </div>
     </div>
   );
-}
+};

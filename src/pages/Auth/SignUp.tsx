@@ -6,6 +6,7 @@ import { UserRole } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { Phone, Lock, MapPin, User } from "lucide-react";
 import OTPVerification from "@/components/auth/OTPVerification";
+import { sendOTP, verifyOTP } from "@/utils/otpService";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -19,7 +20,6 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showOTP, setShowOTP] = useState(false);
-  const [verificationId, setVerificationId] = useState("");
 
   const handleRoleSelection = (selectedRole: UserRole) => {
     setRole(selectedRole);
@@ -32,8 +32,9 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
+      await sendOTP(phone);
+      
       setShowOTP(true);
-      setVerificationId(`mock-${Date.now()}`);
       toast({
         title: "Verification code sent",
         description: "Please check your phone for the verification code.",
@@ -49,7 +50,9 @@ export default function SignUp() {
   const handleVerifyOTP = async (otp: string) => {
     setIsLoading(true);
     try {
-      if (otp === "123456") {
+      const isValid = verifyOTP(phone, otp);
+      
+      if (isValid) {
         await signUp({
           name,
           phone,
@@ -73,11 +76,14 @@ export default function SignUp() {
     }
   };
 
-  const handleResendOTP = () => {
-    toast({
-      title: "Code resent",
-      description: "A new verification code has been sent to your phone.",
-    });
+  const handleResendOTP = async () => {
+    try {
+      await sendOTP(phone);
+      return true;
+    } catch (error) {
+      console.error("Failed to resend OTP:", error);
+      throw error;
+    }
   };
 
   const renderRoleSelection = () => (
@@ -244,6 +250,7 @@ export default function SignUp() {
           onVerify={handleVerifyOTP}
           onResend={handleResendOTP}
           isLoading={isLoading}
+          phoneNumber={phone}
         />
       )}
     </>
