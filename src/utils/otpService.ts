@@ -38,30 +38,12 @@ export const sendOTP = async (phoneNumber: string): Promise<void> => {
   // Store OTP first
   storeOTP(phoneNumber, otp);
 
-  try {
-    console.log("Attempting to invoke send-sms-otp function...");
-    
-    // Send via Edge Function with detailed error logging
-    const { data, error } = await supabase.functions.invoke("send-sms-otp", {
-      body: { phoneNumber, otp }
-    });
+  // Send via Edge Function
+  const { data, error } = await supabase.functions.invoke("send-sms-otp", {
+    body: { phoneNumber, otp }
+  });
 
-    if (error) {
-      console.error("Supabase function invocation error:", error);
-      throw new Error(`Edge function error: ${error.message}`);
-    }
-
-    if (data && data.error) {
-      console.error("Edge function returned an error:", data.error);
-      throw new Error(data.error);
-    }
-
-    console.log("SMS sent successfully:", data);
-  } catch (error: any) {
-    console.error("Error sending OTP:", error);
-    if (error.message?.includes("Failed to fetch")) {
-      throw new Error("Network error: Unable to connect to the SMS service. Please check your internet connection and try again.");
-    }
-    throw new Error(error?.message || "Failed to send verification code");
+  if (error || (data && data.error)) {
+    throw new Error(error?.message || data?.error || "Failed to send verification code");
   }
 };
