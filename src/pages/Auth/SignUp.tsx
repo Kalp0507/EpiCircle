@@ -8,6 +8,7 @@ import OTPVerification from "@/components/auth/OTPVerification";
 import { sendOTP, verifyOTP } from "@/utils/otpService";
 import RoleSelection from "@/components/auth/RoleSelection";
 import SignUpForm from "@/components/auth/SignUpForm";
+import { supabase } from "@/supabaseClient";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -33,14 +34,26 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
+      // Check if phone number is already registered before sending OTP
+      const { data: existingUsers, error: fetchError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("phone", phone);
+
+      if (fetchError) throw fetchError;
+      if (existingUsers && existingUsers.length > 0) {
+        throw new Error("Phone number already registered");
+      }
+
+      // If phone is not registered, proceed with OTP
       await sendOTP(phone);
       setShowOTP(true);
       toast({
         title: "Verification code sent",
         description: "Please check your phone for the verification code.",
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to send verification code. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send verification code. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -68,8 +81,8 @@ export default function SignUp() {
       } else {
         throw new Error("Invalid verification code");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to verify code. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to verify code. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);

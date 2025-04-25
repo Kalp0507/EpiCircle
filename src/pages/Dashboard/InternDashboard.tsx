@@ -308,15 +308,8 @@ export default function InternDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            className="bg-purple-600 text-white px-4 py-2 rounded flex items-center"
-            onClick={() => setShowCustomerModal(true)}
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Select/Add Customer
-          </button>
           <Link to="/new-product">
-            <Button variant="purple">
+            <Button variant="purple" className="bg-purple-600 text-white px-4 py-2 rounded flex items-center">
               <Plus className="w-5 h-5 mr-2" />
               Add New Product
             </Button>
@@ -333,22 +326,7 @@ export default function InternDashboard() {
 
       {currentView === 'list' ? (
         <>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Welcome, {currentUser?.name}
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Manage customer products
-              </p>
-            </div>
-            <Link to="/new-product">
-              <Button variant="purple">
-                <Plus className="w-5 h-5 mr-2" />
-                Add New Product
-              </Button>
-            </Link>
-          </div>
+          {/* Removed duplicate welcome section here */}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
