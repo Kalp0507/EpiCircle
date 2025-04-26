@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronLeft, ChevronRight, Eye, Users, Package, User, Plus, CheckCircle, Clock } from "lucide-react";
-import { UserRole, Product, Customer, Vendor, Intern, Quote, Order } from "@/types";
+import { UserRole, Product, Customer, Vendor, Intern, Quote, Order, VendorQuotation } from "@/types";
 import { useNavigate, Link } from "react-router-dom";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useAuth } from "@/context/AuthContext";
@@ -345,7 +345,7 @@ export default function AdminDashboard() {
   };
 
   // State for vendor quotations
-  const [vendorQuotations, setVendorQuotations] = useState<any[]>([]);
+  const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
   const [vendorQuotationsLoading, setVendorQuotationsLoading] = useState(false);
 
   useEffect(() => {

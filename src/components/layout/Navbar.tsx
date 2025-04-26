@@ -18,7 +18,7 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center">
         <Link to="/" className="flex items-center gap-2">
-          <span className="bg-gradient-to-r from-purple to-purple-dark bg-clip-text text-transparent text-2xl font-bold">BidBoost</span>
+          <span className="bg-gradient-to-r from-purple to-purple-dark bg-clip-text text-transparent text-2xl font-bold">EpiCircle</span>
         </Link>
       </div>
 
@@ -42,11 +42,11 @@ export default function Navbar() {
                 </Link>
               )}
               
-              {currentUser.role === "admin" && (
+              {/* {currentUser.role === "admin" && (
                 <Link to="/admin" className="text-gray-700 hover:text-purple transition-colors">
                   Admin Panel
                 </Link>
-              )}
+              )} */}
             </div>
 
             <div className="flex items-center gap-3">

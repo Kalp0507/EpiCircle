@@ -68,3 +68,12 @@ export interface Order {
   vendor_ids: string[];
   created_at: string;
 }
+
+export interface VendorQuotation {
+  id: string;
+  product_id: string;
+  vendor_id: string;
+  quoted_price: number | null;
+  isSelected?: boolean;
+  created_at?: string;
+};
