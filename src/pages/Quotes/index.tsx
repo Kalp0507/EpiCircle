@@ -8,15 +8,46 @@ import { DollarSign } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { Product } from "@/types";
 
 const QuotesPage = () => {
   const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
   const { id: productId } = useParams();
   const [product, setProduct] = useState(null);
+  const [customer, setCustomer] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+
+    const fetchCustomer = async (product: Product) => {
+      if (!product?.id) return;
+
+      const { data: orderData, error } = await supabase
+        .from("orders")
+        .select("customer_id")
+        .contains("product_ids", [product.id])
+        .single();
+
+      if (error) {
+        console.error("Error fetching customer ID:", error);
+        return;
+      }
+
+      const { data: custData, error: custError } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", orderData.customer_id)
+        .single();
+
+      if (custError) {
+        console.error("Failed to fetch customer:", custError.message);
+      } else {
+        console.log('cust', custData)
+        setCustomer(custData);
+      }
+    };
+
     const fetchProduct = async () => {
       if (!productId) return;
 
@@ -29,24 +60,26 @@ const QuotesPage = () => {
       if (error) {
         console.error("Failed to fetch product:", error.message);
       } else {
+        console.log('product', data)
         setProduct(data);
+        fetchCustomer(data);
       }
     };
 
     fetchProduct();
-  }, [productId]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     const { error } = await supabase
-      .from("products")
+      .from("product_vendors")
       .update({
         quoted_price: parseFloat(price),
         // quote_notes: notes, // assuming you also want to save notes
       })
-      .eq("id", productId);
-  
+      .eq("product_id", product?.id);
+
     if (error) {
       console.error("Failed to submit quote:", error.message);
       alert("Failed to submit quote. Please try again.");
@@ -57,7 +90,7 @@ const QuotesPage = () => {
       navigate('/dashboard');
     }
   };
-  
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -74,22 +107,22 @@ const QuotesPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   <img
-                    src={product.imageURLs?.[0] || "https://placehold.co/400x300"}
-                    alt={product.name}
+                    src={product?.image_urls?.[0] || "https://placehold.co/400x300"}
+                    alt={product?.name}
                     className="w-full h-48 object-cover rounded-lg"
                   />
                   <div>
-                    <h3 className="font-semibold text-lg">{product.name}</h3>
-                    <p className="text-gray-600 mt-1">{product.description}</p>
+                    <h3 className="font-semibold text-lg">{product?.name}</h3>
+                    <p className="text-gray-600 mt-1">{product?.description}</p>
                   </div>
                   <div className="pt-2 border-t">
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">Customer: </span>
-                      {product.customerName}
+                      {customer?.name}
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
-                      <span className="font-medium">Specifications: </span>
-                      {product.specifications}
+                      <span className="font-medium">Location: </span>
+                      {customer?.location}
                     </p>
                   </div>
                 </div>

@@ -179,7 +179,7 @@ const renderOrderDetail = () => {
               <TableBody>
                 {relatedProducts.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell>{product.id}</TableCell>
+                    <TableCell>{product.product_id}</TableCell>
                     <TableCell>
                       {product.quoted_price !== null ? `₹${product.quoted_price}` : "Not Quoted"}
                     </TableCell>
@@ -187,18 +187,18 @@ const renderOrderDetail = () => {
                       {product.is_selected ? (
                         <span className="text-green-600 font-medium">Selected</span>
                       ) : product.quoted_price !== null ? (
-                        <span className="text-yellow-600 font-medium">Pending</span>
+                        <span className="text-yellow-600 font-medium">Quoted</span>
                       ) : (
-                        <span className="text-gray-500">N/A</span>
+                        <span className="text-gray-500">Pending</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {product.quoted_price !== null ? (
-                        <Link to={`/product/${product.id}/quote/edit`}>
+                        <Link to={`/product/${product.product_id}/quote/edit`}>
                           <Button size="sm" variant="outline">Edit</Button>
                         </Link>
                       ) : (
-                        <Link to={`/product/${product.id}/quote`}>
+                        <Link to={`/product/${product.product_id}/quote`}>
                           <Button variant="purple" size="sm">
                             Quote
                           </Button>
