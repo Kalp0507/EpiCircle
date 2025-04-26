@@ -1,104 +1,110 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronLeft, ChevronRight, Eye, Users, Package, User, Plus, CheckCircle, Clock } from "lucide-react";
-import { UserRole, Product, Customer, Vendor, Intern, Quote } from "@/types";
+import { UserRole, Product, Customer, Vendor, Intern, Quote, Order } from "@/types";
 import { useNavigate, Link } from "react-router-dom";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useAuth } from "@/context/AuthContext";
-
-// Mock data
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "Industrial Generator",
-    description: "High-capacity industrial generator for commercial use",
-    imageURLs: ["https://placehold.co/400x300"],
-    customer_id: "1",
-    customerName: "XYZ Corp",
-    intern_id: "1",
-    internName: "Alice Intern",
-    vendor_ids: ["1", "2"],
-    vendorNames: ["John Vendor", "Jane Vendor"],
-    created_at: "2023-05-15T10:00:00Z",
-    selected_vendor_id: "1"
-  },
-  {
-    id: "2",
-    name: "Water Filtration System",
-    description: "Commercial grade water filtration system",
-    imageURLs: ["https://placehold.co/400x300"],
-    customer_id: "2",
-    customerName: "ABC Industries",
-    intern_id: "1",
-    internName: "Alice Intern",
-    vendor_ids: ["1"],
-    vendorNames: ["John Vendor"],
-    created_at: "2023-06-20T14:30:00Z"
-  },
-];
-
-const mockCustomers: Customer[] = [
-  { id: "1", name: "XYZ Corp", phone: "+19876543210", location: "New York", created_at: "2023-01-10T09:00:00Z" },
-  { id: "2", name: "ABC Industries", phone: "+18765432109", location: "Chicago", created_at: "2023-02-15T11:00:00Z" },
-];
-
-const mockVendors: Vendor[] = [
-  { id: "1", name: "John Vendor", phone: "+1234567890", location: "New York", created_at: "2023-01-05T08:00:00Z" },
-  { id: "2", name: "Jane Vendor", phone: "+12345678901", location: "Boston", created_at: "2023-03-20T10:00:00Z" },
-];
-
-const mockInterns: Intern[] = [
-  { id: "1", name: "Alice Intern", phone: "+1987654321", location: "Chicago", created_at: "2023-02-10T09:30:00Z" },
-  { id: "2", name: "Bob Intern", phone: "+19876543211", location: "San Francisco", created_at: "2023-04-15T11:30:00Z" },
-];
-
-const mockQuotes: Quote[] = [
-  { 
-    id: "1", 
-    productId: "1", 
-    vendorId: "1", 
-    vendorName: "John Vendor", 
-    price: 1500, 
-    notes: "Can deliver within 2 weeks", 
-    createdAt: "2023-05-20T11:00:00Z", 
-    isSelected: true 
-  },
-  { 
-    id: "2", 
-    productId: "1", 
-    vendorId: "2", 
-    vendorName: "Jane Vendor", 
-    price: 1650, 
-    notes: "Premium quality, 3-year warranty", 
-    createdAt: "2023-05-21T09:00:00Z", 
-    isSelected: false 
-  },
-];
+import { supabase } from "@/supabaseClient";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState("products");
+  const [activeTab, setActiveTab] = useState("orders");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [orders, setOrders] = useState([])
+  const [customers, setCustomers] = useState([])
+  const [vendors, setVendors] = useState([])
+  const [interns, setInterns] = useState([])
+  const [admins, setAdmins] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(false)
 
   // Mock pagination state (not functional)
   const [page, setPage] = useState(1);
-  
+
+  // for detail views
+
+  useEffect(() => {
+    const fetchOrder = async () => {
+      const { data, error } = await supabase.from('orders').select('*')
+
+      if (error) throw error;
+
+      setOrders(data);
+      console.log(data)
+    }
+
+    const fetchCustomers = async () => {
+      const { data, error } = await supabase.from('customers').select('*')
+
+      if (error) throw error;
+
+      setCustomers(data);
+      console.log(data)
+    }
+
+    const fetchVendors = async () => {
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'vendor')
+
+      if (error) throw error;
+
+      setVendors(data);
+      console.log(data)
+    }
+
+    const fetchInterns = async () => {
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'intern')
+
+      if (error) throw error;
+
+      setInterns(data);
+      console.log(data)
+    }
+
+    const fetchAdmins = async () => {
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'admin')
+
+      if (error) throw error;
+
+      setAdmins(data);
+      console.log(data)
+    }
+
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from('products').select('*')
+
+      if (error) throw error;
+
+      setProducts(data);
+      setLoading(false)
+      console.log(data)
+    }
+
+    setLoading(true);
+    fetchOrder();
+    fetchCustomers();
+    fetchVendors();
+    fetchInterns();
+    fetchAdmins();
+    fetchProducts();
+  }, [])
+
   // Vendor dashboard related states
-  const assignedProducts = mockProducts;
-  const quotedProductIds = mockQuotes
+  const assignedProducts = [];
+  const quotedProductIds = []
     .filter(q => q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
     .map(q => q.productId);
   const unquotedProducts = assignedProducts.filter(p => !quotedProductIds.includes(p.id));
   const quotedProducts = assignedProducts.filter(p => quotedProductIds.includes(p.id));
-  
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -113,45 +119,37 @@ export default function AdminDashboard() {
     setSelectedItemId(null);
   };
 
-  const filteredProducts = mockProducts.filter(
-    product => 
+  const filteredProducts = [].filter(
+    product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.customerName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredCustomers = mockCustomers.filter(
-    customer => 
+  const filteredCustomers = [].filter(
+    customer =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredVendors = mockVendors.filter(
-    vendor => 
+  const filteredVendors = [].filter(
+    vendor =>
       vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vendor.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredInterns = mockInterns.filter(
-    intern => 
+  const filteredInterns = [].filter(
+    intern =>
       intern.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       intern.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const renderProductDetail = () => {
-    const product = mockProducts.find(p => p.id === selectedItemId);
-    if (!product) return <div>Product not found</div>;
+  const renderOrdersDetail = () => {
+    const selectedOrder: Order = orders.find(o => o.id === selectedItemId);
+    if (!selectedOrder) return <div>Order not found</div>;
 
-    const productQuotes = mockQuotes.filter(q => q.productId === product.id);
-    const selectedQuote = productQuotes.find(q => q.isSelected);
-    const customer = mockCustomers.find(c => c.id === product.customer_id);
-    const intern = mockInterns.find(i => i.id === product.intern_id);
-    
-    // Check if the product has a quote from the current user (for admin acting as vendor)
-    const quote = mockQuotes.find(q => 
-      q.productId === product.id && 
-      (q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
-    );
-    const isQuoted = !!quote;
+    const relatedProducts = selectedOrder.product_ids.map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
+    const customer = customers.find(c => c.id === selectedOrder.customer_id);
+    const intern = interns.find(i => i.id === selectedOrder.intern_id) || admins.find(a => a.id === selectedOrder.intern_id);
 
     return (
       <div className="space-y-6">
@@ -159,36 +157,10 @@ export default function AdminDashboard() {
           <Button variant="outline" size="sm" onClick={handleBackToList} className="mr-2">
             <ChevronLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          <h2 className="text-2xl font-bold">Product Details: {product.name}</h2>
+          <h2 className="text-2xl font-semibold truncate">{selectedOrder.id}</h2>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-center mb-4">
-                <img 
-                  src={product.imageURLs[0]} 
-                  alt={product.name}
-                  className="h-48 w-auto object-cover rounded-md border"
-                />
-              </div>
-              <div className="space-y-2">
-                <div>
-                  <span className="font-semibold">Name:</span> {product.name}
-                </div>
-                <div>
-                  <span className="font-semibold">Description:</span> {product.description}
-                </div>
-                <div>
-                  <span className="font-semibold">Created:</span> {new Date(product.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="">
           <Card>
             <CardHeader>
               <CardTitle>Related Information</CardTitle>
@@ -204,99 +176,94 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-              
+
               <div className="space-y-2 pb-3 border-b">
                 <h3 className="font-medium text-gray-700">Uploaded By</h3>
                 {intern && (
                   <div>
                     <div><span className="font-semibold">Name:</span> {intern.name}</div>
                     <div><span className="font-semibold">Phone:</span> {intern.phone}</div>
-                    <div><span className="font-semibold">Location:</span> {intern.location}</div>
+                    <div><span className="font-semibold">Location:</span> {intern.location || 'ADMIN'}</div>
                   </div>
                 )}
               </div>
-              
-              {/* Admin can submit quotes like a vendor */}
-              {isQuoted ? (
-                <div className="mt-4 p-4 border rounded-md bg-gray-50">
-                  <h3 className="font-medium text-gray-700 mb-2">Your Quote</h3>
-                  <div className="space-y-2">
-                    <div><span className="font-semibold">Price:</span> ${quote.price.toFixed(2)}</div>
-                    <div><span className="font-semibold">Notes:</span> {quote.notes}</div>
-                    <div><span className="font-semibold">Status:</span> {quote.isSelected ? "Selected" : "Pending"}</div>
-                    <div className="pt-2">
+              {/* <div className="mt-4 p-4 border rounded-md bg-gray-50 text-center">
+                <p className="text-gray-500 mb-2">You can submit a quote for this product</p>
+                <Link to={`/product/${product.id}/quote`}>
+                  <Button variant="purple" size="sm">Submit Quote</Button>
+                </Link>
+              </div> */}
+              {/* <div className="pt-2">
                       <Link to={`/product/${product.id}/quote/edit`}>
                         <Button variant="outline" size="sm">Edit Quote</Button>
                       </Link>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 p-4 border rounded-md bg-gray-50 text-center">
-                  <p className="text-gray-500 mb-2">You can submit a quote for this product</p>
-                  <Link to={`/product/${product.id}/quote`}>
-                    <Button variant="purple" size="sm">Submit Quote</Button>
-                  </Link>
-                </div>
-              )}
+                    </div> */}
+
+              {/* Admin can submit quotes like a vendor */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Associated Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {relatedProducts.length === 0 ? (
+                    <p className="text-gray-500">No associated product details found for this vendor.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Quoted Price</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {relatedProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>{product.name}</TableCell>
+                            <TableCell>
+                              {product.quoted_price !== null ? `₹${product.quoted_price}` : "Not Quoted"}
+                            </TableCell>
+                            {/* <TableCell>
+                              {product.is_selected ? (
+                                <span className="text-green-600 font-medium">Selected</span>
+                              ) : product.quoted_price !== null ? (
+                                <span className="text-yellow-600 font-medium">Quoted</span>
+                              ) : (
+                                <span className="text-gray-500">Pending</span>
+                              )}
+                            </TableCell> */}
+                            <TableCell>
+                              <Link to={`/product/${product.product_id}/quote/edit`}>
+                                <Button size="sm" variant="outline">Edit</Button>
+                              </Link>
+                              {product.quoted_price !== null && (
+                                <Link to={`/product/${product.product_id}/quote`}>
+                                  <Button variant="purple" size="sm">
+                                    Quote
+                                  </Button>
+                                </Link>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
-        </div>
+        </div >
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Vendor Quotes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {productQuotes.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {productQuotes.map(quote => (
-                    <TableRow key={quote.id} className={quote.isSelected ? "bg-green-50" : ""}>
-                      <TableCell>{quote.vendorName}</TableCell>
-                      <TableCell>${quote.price.toFixed(2)}</TableCell>
-                      <TableCell>{quote.notes}</TableCell>
-                      <TableCell>{new Date(quote.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {quote.isSelected ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Selected
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Pending
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                No quotes available for this product
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      </div >
     );
   };
 
   const renderCustomerDetail = () => {
-    const customer = mockCustomers.find(c => c.id === selectedItemId);
+    const customer = customers.find(c => c.id === selectedItemId);
     if (!customer) return <div>Customer not found</div>;
-    
-    const customerProducts = mockProducts.filter(p => p.customer_id === customer.id);
+
+    const customerOrders = orders.filter(o => o.customer_id === customer.id);
 
     return (
       <div className="space-y-6">
@@ -331,42 +298,33 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Customer's Products</CardTitle>
+            <CardTitle>Customer's Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            {customerProducts.length > 0 ? (
+            {customerOrders.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead>Order</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Intern</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customerProducts.map(product => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.description.substring(0, 50)}...</TableCell>
-                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
+                  {customerOrders.map(o => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-medium">{o.id}</TableCell>
+                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>{interns.find(c => c.id === o.intern_id)?.name || (admins.find(a => a.id === o.intern_id)?.name + ' (admin)')}</TableCell>
                       <TableCell>
-                        {product.selected_vendor_id ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Vendor Selected
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            Awaiting Selection
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
-                          onClick={() => handleViewDetail(product.id)}
+                          onClick={() => {
+                            setActiveTab('orders')
+                            handleViewDetail(o.id)
+                          }}
                         >
                           <Eye className="h-4 w-4 mr-1" /> View
                         </Button>
@@ -386,13 +344,39 @@ export default function AdminDashboard() {
     );
   };
 
+  // State for vendor quotations
+  const [vendorQuotations, setVendorQuotations] = useState<any[]>([]);
+  const [vendorQuotationsLoading, setVendorQuotationsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchVendorQuotations = async () => {
+      if (activeTab === "vendors" && currentView === "detail" && selectedItemId) {
+        setVendorQuotationsLoading(true);
+        const vendor = vendors.find(v => v.id === selectedItemId);
+        if (!vendor) {
+          setVendorQuotations([]);
+          setVendorQuotationsLoading(false);
+          return;
+        }
+        const { data, error } = await supabase.from('product_vendors').select('*').eq('vendor_id', vendor.id);
+        if (!error) {
+          setVendorQuotations(data || []);
+        } else {
+          setVendorQuotations([]);
+        }
+        setVendorQuotationsLoading(false);
+      }
+    };
+    fetchVendorQuotations();
+
+  }, [activeTab, currentView, selectedItemId, vendors]);
+
   const renderVendorDetail = () => {
-    const vendor = mockVendors.find(v => v.id === selectedItemId);
+    const vendor = vendors.find(v => v.id === selectedItemId);
     if (!vendor) return <div>Vendor not found</div>;
-    
-    const vendorQuotes = mockQuotes.filter(q => q.vendorId === vendor.id);
-    const quotedProductIds = vendorQuotes.map(q => q.productId);
-    const quotedProducts = mockProducts.filter(p => quotedProductIds.includes(p.id));
+
+    const quotedProducts = vendorQuotations.filter(q => q.quoted_price !== null);
+    // const unQuotedProducts = vendorQuotations.filter(q => q.quoted_price === null);
 
     return (
       <div className="space-y-6">
@@ -430,34 +414,34 @@ export default function AdminDashboard() {
             <CardTitle>Quoted Products</CardTitle>
           </CardHeader>
           <CardContent>
-            {vendorQuotes.length > 0 ? (
+            {vendorQuotationsLoading ? (
+              <div className="text-center py-4 text-gray-500">Loading quotes...</div>
+            ) : quotedProducts.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
+                    <TableHead>Product Name</TableHead>
                     <TableHead>Quote Price</TableHead>
-                    <TableHead>Notes</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vendorQuotes.map(quote => {
-                    const product = mockProducts.find(p => p.id === quote.productId);
+                  {quotedProducts.map(p => {
+                    const product = products.find(prod => prod.id === p.product_id);
                     return (
-                      <TableRow key={quote.id} className={quote.isSelected ? "bg-green-50" : ""}>
-                        <TableCell className="font-medium">{product?.name || "Unknown"}</TableCell>
-                        <TableCell>${quote.price.toFixed(2)}</TableCell>
-                        <TableCell>{quote.notes}</TableCell>
-                        <TableCell>{new Date(quote.createdAt).toLocaleDateString()}</TableCell>
+                      <TableRow key={p.id} className={p.isSelected ? "bg-green-50" : ""}>
+                        <TableCell className="font-medium">{product ? product.name : "Unknown"}</TableCell>
+                        <TableCell>₹{p.quoted_price?.toFixed(2)}</TableCell>
+                        <TableCell>{p.created_at ? new Date(p.created_at).toLocaleDateString() : ""}</TableCell>
                         <TableCell>
-                          {quote.isSelected ? (
+                          {p.isSelected ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Selected
+                              Yes
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              Pending
+                              NO
                             </span>
                           )}
                         </TableCell>
@@ -480,7 +464,7 @@ export default function AdminDashboard() {
   const renderInternDetail = () => {
     const intern = mockInterns.find(i => i.id === selectedItemId);
     if (!intern) return <div>Intern not found</div>;
-    
+
     const internProducts = mockProducts.filter(p => p.intern_id === intern.id);
 
     return (
@@ -548,8 +532,8 @@ export default function AdminDashboard() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleViewDetail(product.id)}
                         >
@@ -574,8 +558,8 @@ export default function AdminDashboard() {
   const renderContent = () => {
     if (currentView === 'detail') {
       switch (activeTab) {
-        case 'products':
-          return renderProductDetail();
+        case 'orders':
+          return renderOrdersDetail();
         case 'customers':
           return renderCustomerDetail();
         case 'vendors':
@@ -594,8 +578,8 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-bold">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input 
-              className="pl-9 w-full sm:w-[300px]" 
+            <Input
+              className="pl-9 w-full sm:w-[300px]"
               placeholder={`Search ${activeTab}...`}
               value={searchTerm}
               onChange={handleSearch}
@@ -603,47 +587,49 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {activeTab === "products" && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Date Added</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.customerName}</TableCell>
-                  <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    {product.selected_vendor_id ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Vendor Selected
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Awaiting Selection
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDetail(product.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        {activeTab === "orders" && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>All Orders</CardTitle>
+              <p className="text-sm text-gray-500">Overview of all orders in the system</p>
+            </CardHeader>
+            <CardContent>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order-id</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Intern</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <p>Loading orders...</p>
+                  ) : orders.map(o => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-medium">{o.id}</TableCell>
+                      <TableCell>{customers.find(c => c.id === o.customer_id)?.name}</TableCell>
+                      {/* <TableCell>{o.intern_id}</TableCell> */}
+                      <TableCell>{interns.find(c => c.id === o.intern_id)?.name || (admins.find(a => a.id === o.intern_id)?.name + ' (admin)')}</TableCell>
+                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetail(o.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
 
         {activeTab === "customers" && (
@@ -658,17 +644,21 @@ export default function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.map((customer) => (
+              {loading ? (
+                <p>Loading customers</p>
+              ) : customers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.name}</TableCell>
                   <TableCell>{customer.phone}</TableCell>
                   <TableCell>{customer.location}</TableCell>
                   <TableCell>
-                    {mockProducts.filter(p => p.customer_id === customer.id).length}
+                    {orders
+                      .filter(o => o.customer_id === customer.id)
+                      .reduce((total, o) => total + (o.product_ids?.length || 0), 0)}
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleViewDetail(customer.id)}
                     >
@@ -693,17 +683,17 @@ export default function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVendors.map((vendor) => (
+              {vendors.map((vendor) => (
                 <TableRow key={vendor.id}>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>{vendor.phone}</TableCell>
                   <TableCell>{vendor.location}</TableCell>
                   <TableCell>
-                    {mockQuotes.filter(q => q.vendorId === vendor.id).length}
+                    {[].filter(q => q.vendorId === vendor.id).length}
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleViewDetail(vendor.id)}
                     >
@@ -728,17 +718,19 @@ export default function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInterns.map((intern) => (
+              {interns.map((intern) => (
                 <TableRow key={intern.id}>
                   <TableCell className="font-medium">{intern.name}</TableCell>
                   <TableCell>{intern.phone}</TableCell>
                   <TableCell>{intern.location}</TableCell>
                   <TableCell>
-                    {mockProducts.filter(p => p.intern_id === intern.id).length}
+                    {orders
+                      .filter(o => o.intern_id === intern.id)
+                      .reduce((total, o) => total + (o.product_ids?.length || 0), 0)}
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleViewDetail(intern.id)}
                     >
@@ -788,14 +780,14 @@ export default function AdminDashboard() {
                       <Package className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Products</p>
-                      <h3 className="text-2xl font-bold">{mockProducts.length}</h3>
+                      <p className="text-sm font-medium text-gray-500">Orders</p>
+                      <h3 className="text-2xl font-bold">{orders.length}</h3>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center">
@@ -805,13 +797,13 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">Customers</p>
-                      <h3 className="text-2xl font-bold">{mockCustomers.length}</h3>
+                      <h3 className="text-2xl font-bold">{customers.length}</h3>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center">
@@ -821,13 +813,13 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">Vendors</p>
-                      <h3 className="text-2xl font-bold">{mockVendors.length}</h3>
+                      <h3 className="text-2xl font-bold">{vendors.length}</h3>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center">
@@ -837,7 +829,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">Quotes</p>
-                      <h3 className="text-2xl font-bold">{mockQuotes.length}</h3>
+                      <h3 className="text-2xl font-bold">{[].length}</h3>
                     </div>
                   </div>
                 </div>
@@ -845,139 +837,18 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Products Needing Quotes</CardTitle>
-              <p className="text-sm text-gray-500">Products waiting for pricing</p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date Added</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {unquotedProducts.map(product => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.customerName}</TableCell>
-                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewDetail(product.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" /> View
-                        </Button>
-                        <Link to={`/product/${product.id}/quote`}>
-                          <Button variant="purple" size="sm">Quote</Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {unquotedProducts.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                        No products waiting for quotes
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <div className="flex space-x-2">
+            <Tabs defaultValue="orders" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList>
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="customers">Customers</TabsTrigger>
+                <TabsTrigger value="vendors">Vendors</TabsTrigger>
+                <TabsTrigger value="interns">Interns</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>All Products</CardTitle>
-              <p className="text-sm text-gray-500">Overview of all products in the system</p>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex space-x-2">
-                  <Tabs defaultValue="products" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList>
-                      <TabsTrigger value="products">Products</TabsTrigger>
-                      <TabsTrigger value="customers">Customers</TabsTrigger>
-                      <TabsTrigger value="vendors">Vendors</TabsTrigger>
-                      <TabsTrigger value="interns">Interns</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                  <Input
-                    placeholder="Search..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={handleSearch}
-                  />
-                </div>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.map(product => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.customerName}</TableCell>
-                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {product.selected_vendor_id ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Vendor Selected
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            Awaiting Selection
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewDetail(product.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" /> View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              <div className="mt-4 flex items-center justify-end">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious onClick={() => setPage(Math.max(1, page - 1))} />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <span className="text-sm text-gray-600">Page {page}</span>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext onClick={() => setPage(page + 1)} />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </CardContent>
-          </Card>
+          {renderContent()}
         </>
       ) : (
         renderDetailView()
@@ -987,8 +858,8 @@ export default function AdminDashboard() {
 
   function renderDetailView() {
     switch (activeTab) {
-      case "products":
-        return renderProductDetail();
+      case "orders":
+        return renderOrdersDetail();
       case "customers":
         return renderCustomerDetail();
       case "vendors":
@@ -996,7 +867,7 @@ export default function AdminDashboard() {
       case "interns":
         return renderInternDetail();
       default:
-        return renderProductDetail();
+        return renderOrdersDetail();
     }
   }
 }
