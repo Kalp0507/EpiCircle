@@ -73,10 +73,10 @@ export default function NewProduct() {
       setLoading(true);
       const { data, error } = await supabase
         .from('customers')
-        .select('id, name, phone, location')
-        .eq('added_by', currentInternObj?.id);
+        .select('id, name, phone, location');
 
       if (error) {
+        console.error("Error fetching customers:", error);
         setLoading(false);
         return;
       }
