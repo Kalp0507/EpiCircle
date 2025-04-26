@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,214 +9,214 @@ import {
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { Eye, Package, CheckCircle, Clock } from "lucide-react";
-import { Product, Quote } from "@/types";
-
-// Mock data
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "Industrial Generator",
-    description: "High-capacity industrial generator for commercial use",
-    imageURLs: ["https://placehold.co/400x300"],
-    customer_id: "1",
-    customerName: "XYZ Corp",
-    intern_id: "1",
-    internName: "Alice Intern",
-    vendor_ids: ["1", "2"],
-    vendorNames: ["John Vendor", "Jane Vendor"],
-    created_at: "2023-05-15T10:00:00Z",
-    selected_vendor_id: "1"
-  },
-  {
-    id: "2",
-    name: "Water Filtration System",
-    description: "Commercial grade water filtration system",
-    imageURLs: ["https://placehold.co/400x300"],
-    customer_id: "2",
-    customerName: "ABC Industries",
-    intern_id: "1",
-    internName: "Alice Intern",
-    vendor_ids: ["1"],
-    vendorNames: ["John Vendor"],
-    created_at: "2023-06-20T14:30:00Z"
-  },
-  {
-    id: "3",
-    name: "Commercial HVAC System",
-    description: "Energy-efficient HVAC solution for commercial spaces",
-    imageURLs: ["https://placehold.co/400x300"],
-    customer_id: "1",
-    customerName: "XYZ Corp",
-    intern_id: "1",
-    internName: "Alice Intern",
-    vendor_ids: ["1"],
-    vendorNames: ["John Vendor"],
-    created_at: "2023-07-10T11:15:00Z"
-  },
-];
-
-const mockQuotes: Quote[] = [
-  { 
-    id: "1", 
-    productId: "1", 
-    vendorId: "1", 
-    vendorName: "John Vendor", 
-    price: 1500, 
-    notes: "Can deliver within 2 weeks", 
-    createdAt: "2023-05-20T11:00:00Z", 
-    isSelected: true 
-  },
-  { 
-    id: "3", 
-    productId: "3", 
-    vendorId: "1", 
-    vendorName: "John Vendor", 
-    price: 3200, 
-    notes: "Premium quality with installation included", 
-    createdAt: "2023-07-15T14:30:00Z", 
-    isSelected: false 
-  },
-];
+import { Order, Product, Quote } from "@/types";
+import { supabase } from "@/supabaseClient";
 
 export default function VendorDashboard() {
   const { currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [orders, setOrders] = useState([])
+  const [products, setProducts] = useState([])
+  const [unquotedOrders, setUnquotedOrders] = useState([]);
+  const [quotedOrders, setQuotedOrders] = useState([]);
 
-  // Filter products for this vendor
-  const assignedProducts = mockProducts.filter(p => 
-    p.vendor_ids.includes(currentUser?.id || "") || 
-    p.vendorNames.includes(currentUser?.name || "")
-  );
+  useEffect(()=>{
+    async function getOrdersByVendor(vendorId: string) {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .contains("vendor_ids", [vendorId]);
+    
+      if (error) {
+        console.error("Error fetching orders:", error);
+        return [];
+      }
+    
+      return data;
+    }
 
-  const quotedProductIds = mockQuotes
-    .filter(q => q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
-    .map(q => q.productId);
+    async function getProductVendorsByVendor(vendorId: string) {
+      const { data, error } = await supabase
+        .from("product_vendors")
+        .select("*")
+        .eq("vendor_id", vendorId);
+    
+      if (error) {
+        console.error("Error fetching product_vendors:", error);
+        return [];
+      }
+    
+      return data;
+    }
 
-  const unquotedProducts = assignedProducts.filter(p => !quotedProductIds.includes(p.id));
-  const quotedProducts = assignedProducts.filter(p => quotedProductIds.includes(p.id));
+    getOrdersByVendor(currentUser.id).then((data) => {
+      setOrders(data);
+      console.log(data)
+    });
 
-  const handleViewDetail = (productId: string) => {
-    setSelectedProductId(productId);
+    getProductVendorsByVendor(currentUser.id).then((data) => {
+      setProducts(data);
+      console.log(data)
+    });
+  },[])
+
+  useEffect(()=>{
+    async function getOrdersWithUnquotedProducts() {
+      const filteredOrders = [];
+    
+      for (const order of orders) {
+        let quoted = false;
+        let product = [];
+        for (const productId of order.product_ids) {
+          product = products.filter((p)=>p.product_id === productId && p.quoted_price === null)
+        }
+        quoted = product.length === order.product_ids.length ? true : false; 
+
+        if(quoted){
+          filteredOrders.push(order)
+        }
+      }
+    
+      return filteredOrders;
+    }
+
+    async function getOrdersWithQuotedProducts() {
+      const filteredOrders = [];
+    
+      for (const order of orders) {
+        let quoted = false;
+        let product = [];
+        for (const productId of order.product_ids) {
+          product = products.filter((p)=>p.product_id === productId && p.quoted_price !== null)
+        }
+        quoted = product.length === order.product_ids.length ? true : false; 
+
+        if(quoted){
+          filteredOrders.push(order)
+        }
+      }
+    
+      return filteredOrders;
+    }
+
+    getOrdersWithUnquotedProducts().then((filteredOrders)=>{
+      setUnquotedOrders(filteredOrders)
+    });
+
+    getOrdersWithQuotedProducts().then((filteredOrders)=>{
+      setQuotedOrders(filteredOrders)
+    });
+  },[orders, products])
+
+  const handleViewDetail = (clickedOrder: Order) => {
+    setSelectedOrderId(clickedOrder);
     setCurrentView('detail');
   };
 
   const handleBackToList = () => {
     setCurrentView('list');
-    setSelectedProductId(null);
+    setSelectedOrderId(null);
   };
 
-  const renderProductDetail = () => {
-    const product = mockProducts.find(p => p.id === selectedProductId);
-    if (!product) return <div>Product not found</div>;
+const renderOrderDetail = () => {
+  const selectedOrder = orders.find((o) => o.id === selectedOrderId);
+  if (!selectedOrder) return <div>Order not found</div>;
 
-    const quote = mockQuotes.find(q => 
-      q.productId === product.id && 
-      (q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
-    );
+  const relatedProducts = selectedOrder.product_ids
+  .map(id => products.find(prod => prod.product_id === id))
+  .filter(Boolean); // removes any undefined if not found
 
-    const isQuoted = !!quote;
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center mb-6">
-          <Button variant="outline" size="sm" onClick={handleBackToList} className="mr-2">
-            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </Button>
-          <h2 className="text-2xl font-bold">Product Details: {product.name}</h2>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-center mb-4">
-                <img 
-                  src={product.imageURLs[0]} 
-                  alt={product.name}
-                  className="h-48 w-auto object-cover rounded-md border"
-                />
-              </div>
-              <div className="space-y-2">
-                <div>
-                  <span className="font-semibold">Name:</span> {product.name}
-                </div>
-                <div>
-                  <span className="font-semibold">Description:</span> {product.description}
-                </div>
-                <div>
-                  <span className="font-semibold">Customer:</span> {product.customerName}
-                </div>
-                <div>
-                  <span className="font-semibold">Created:</span> {new Date(product.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {isQuoted ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Quote</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <span className="font-semibold">Price:</span> ${quote.price.toFixed(2)}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Notes:</span> {quote.notes}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Date Quoted:</span> {new Date(quote.createdAt).toLocaleDateString()}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Status:</span>{" "}
-                    {quote.isSelected ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Selected by Customer
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Pending Selection
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Link to={`/product/${product.id}/quote/edit`}>
-                      <Button variant="outline" size="sm">Edit Quote</Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Submit Quote</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center h-[250px]">
-                <p className="text-center text-gray-500 mb-4">
-                  You haven't quoted on this product yet
-                </p>
-                <Link to={`/product/${product.id}/quote`}>
-                  <Button variant="purple">
-                    Submit a Quote
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center mb-6">
+        <Button variant="outline" size="sm" onClick={handleBackToList} className="mr-2">
+          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </Button>
+        <h2 className="text-2xl font-bold">Order Details: {selectedOrder.id}</h2>
       </div>
-    );
-  };
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Order Info</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div>
+            <span className="font-semibold">Order ID:</span> {selectedOrder.id}
+          </div>
+          <div>
+            <span className="font-semibold">Customer ID:</span> {selectedOrder.customer_id}
+          </div>
+          <div>
+            <span className="font-semibold">Created:</span> {new Date(selectedOrder.created_at).toLocaleDateString()}
+          </div>
+          <div>
+            <span className="font-semibold">Total Products:</span> {selectedOrder.product_ids.length}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Associated Products</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {relatedProducts.length === 0 ? (
+            <p className="text-gray-500">No associated product details found for this vendor.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product ID</TableHead>
+                  <TableHead>Quoted Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {relatedProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>{product.id}</TableCell>
+                    <TableCell>
+                      {product.quoted_price !== null ? `₹${product.quoted_price}` : "Not Quoted"}
+                    </TableCell>
+                    <TableCell>
+                      {product.is_selected ? (
+                        <span className="text-green-600 font-medium">Selected</span>
+                      ) : product.quoted_price !== null ? (
+                        <span className="text-yellow-600 font-medium">Pending</span>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {product.quoted_price !== null ? (
+                        <Link to={`/product/${product.id}/quote/edit`}>
+                          <Button size="sm" variant="outline">Edit</Button>
+                        </Link>
+                      ) : (
+                        <Link to={`/product/${product.id}/quote`}>
+                          <Button variant="purple" size="sm">
+                            Quote
+                          </Button>
+                        </Link>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+console.log(quotedOrders,unquotedOrders)
 
   return (
     <div className="space-y-6">
@@ -239,7 +239,7 @@ export default function VendorDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Unquoted Products</p>
-                  <h3 className="text-2xl font-bold">{unquotedProducts.length}</h3>
+                  <h3 className="text-2xl font-bold">{products.filter((i)=>i.quoted_price === null).length}</h3>
                 </div>
               </CardContent>
             </Card>
@@ -250,7 +250,7 @@ export default function VendorDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Quoted Products</p>
-                  <h3 className="text-2xl font-bold">{quotedProducts.length}</h3>
+                  <h3 className="text-2xl font-bold">{products.filter((i)=>i.quoted_price !== null).length}</h3>
                 </div>
               </CardContent>
             </Card>
@@ -262,10 +262,7 @@ export default function VendorDashboard() {
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Selected Quotes</p>
                   <h3 className="text-2xl font-bold">
-                    {mockQuotes.filter(q => 
-                      (q.vendorId === currentUser?.id || q.vendorName === currentUser?.name) && 
-                      q.isSelected
-                    ).length}
+                    {products.filter((i)=>i.is_selected === true).length}
                   </h3>
                 </div>
               </CardContent>
@@ -278,7 +275,7 @@ export default function VendorDashboard() {
               <h3 className="text-lg font-medium leading-6 text-gray-900">Products Needing Quotes</h3>
               <p className="mt-1 text-sm text-gray-500">Products assigned to you waiting for pricing</p>
             </div>
-            {unquotedProducts.length === 0 ? (
+            {unquotedOrders.length === 0 ? (
               <div className="p-6 text-center">
                 <p className="text-gray-500">No products currently need quoting. Check back later!</p>
               </div>
@@ -286,32 +283,27 @@ export default function VendorDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
+                    <TableHead>Order</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Date Added</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {unquotedProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.customerName}</TableCell>
-                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
+                  {unquotedOrders.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-medium">{o.id}</TableCell>
+                      <TableCell>{o.customer_id}</TableCell>
+                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="space-x-2">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleViewDetail(product.id)}
+                          onClick={() => handleViewDetail(o.id)}
                           className="mr-2"
                         >
                           <Eye className="h-4 w-4 mr-1" /> View
                         </Button>
-                        <Link to={`/product/${product.id}/quote`}>
-                          <Button variant="purple" size="sm">
-                            Quote
-                          </Button>
-                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -327,7 +319,7 @@ export default function VendorDashboard() {
               <p className="mt-1 text-sm text-gray-500">Quotes you've already provided</p>
             </div>
 
-            {quotedProducts.length === 0 ? (
+            {quotedOrders.length === 0 ? (
               <div className="p-6 text-center">
                 <p className="text-gray-500">You haven't submitted any quotes yet.</p>
               </div>
@@ -335,28 +327,19 @@ export default function VendorDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
+                    <TableHead>Order</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Status</TableHead>
+                    {/* <TableHead>Status</TableHead> */}
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {quotedProducts.map((product) => {
-                    const quote = mockQuotes.find(q => 
-                      q.productId === product.id && 
-                      (q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
-                    );
-                    
+                  {quotedOrders.map((o) => {
                     return (
-                      <TableRow key={product.id} className={quote?.isSelected ? "bg-green-50" : ""}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{product.customerName}</TableCell>
-                        <TableCell>
-                          ${quote ? quote.price.toFixed(2) : "N/A"}
-                        </TableCell>
-                        <TableCell>
+                      <TableRow key={o.id} >
+                        <TableCell className="font-medium">{o.id}</TableCell>
+                        <TableCell>{o.customer_id}</TableCell>
+                        {/* <TableCell>
                           {quote?.isSelected ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               Selected
@@ -366,12 +349,12 @@ export default function VendorDashboard() {
                               Pending
                             </span>
                           )}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleViewDetail(product.id)}
+                            onClick={() => handleViewDetail(o.id)}
                           >
                             <Eye className="h-4 w-4 mr-1" /> View
                           </Button>
@@ -385,7 +368,7 @@ export default function VendorDashboard() {
           </div>
         </>
       ) : (
-        renderProductDetail()
+        renderOrderDetail()
       )}
     </div>
   );
