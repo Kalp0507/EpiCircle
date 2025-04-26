@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronLeft, ChevronRight, Eye, Users, Package, User } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Users, Package, User, Plus, CheckCircle, Clock } from "lucide-react";
 import { UserRole, Product, Customer, Vendor, Intern, Quote } from "@/types";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { useAuth } from "@/context/AuthContext";
 
 // Mock data
 const mockProducts: Product[] = [
@@ -81,6 +82,7 @@ const mockQuotes: Quote[] = [
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("products");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
@@ -88,6 +90,14 @@ export default function AdminDashboard() {
 
   // Mock pagination state (not functional)
   const [page, setPage] = useState(1);
+  
+  // Vendor dashboard related states
+  const assignedProducts = mockProducts;
+  const quotedProductIds = mockQuotes
+    .filter(q => q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
+    .map(q => q.productId);
+  const unquotedProducts = assignedProducts.filter(p => !quotedProductIds.includes(p.id));
+  const quotedProducts = assignedProducts.filter(p => quotedProductIds.includes(p.id));
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -135,6 +145,13 @@ export default function AdminDashboard() {
     const selectedQuote = productQuotes.find(q => q.isSelected);
     const customer = mockCustomers.find(c => c.id === product.customer_id);
     const intern = mockInterns.find(i => i.id === product.intern_id);
+    
+    // Check if the product has a quote from the current user (for admin acting as vendor)
+    const quote = mockQuotes.find(q => 
+      q.productId === product.id && 
+      (q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
+    );
+    const isQuoted = !!quote;
 
     return (
       <div className="space-y-6">
@@ -159,6 +176,9 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="space-y-2">
+                <div>
+                  <span className="font-semibold">Name:</span> {product.name}
+                </div>
                 <div>
                   <span className="font-semibold">Description:</span> {product.description}
                 </div>
@@ -195,6 +215,30 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+              
+              {/* Admin can submit quotes like a vendor */}
+              {isQuoted ? (
+                <div className="mt-4 p-4 border rounded-md bg-gray-50">
+                  <h3 className="font-medium text-gray-700 mb-2">Your Quote</h3>
+                  <div className="space-y-2">
+                    <div><span className="font-semibold">Price:</span> ${quote.price.toFixed(2)}</div>
+                    <div><span className="font-semibold">Notes:</span> {quote.notes}</div>
+                    <div><span className="font-semibold">Status:</span> {quote.isSelected ? "Selected" : "Pending"}</div>
+                    <div className="pt-2">
+                      <Link to={`/product/${product.id}/quote/edit`}>
+                        <Button variant="outline" size="sm">Edit Quote</Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 p-4 border rounded-md bg-gray-50 text-center">
+                  <p className="text-gray-500 mb-2">You can submit a quote for this product</p>
+                  <Link to={`/product/${product.id}/quote`}>
+                    <Button variant="purple" size="sm">Submit Quote</Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -726,65 +770,233 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex flex-row items-center pt-6">
-            <div className="bg-blue-100 p-2 rounded-md">
-              <Package className="h-8 w-8 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-gray-500">Products</p>
-              <h3 className="text-2xl font-bold">{mockProducts.length}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-row items-center pt-6">
-            <div className="bg-green-100 p-2 rounded-md">
-              <Users className="h-8 w-8 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-gray-500">Customers</p>
-              <h3 className="text-2xl font-bold">{mockCustomers.length}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-row items-center pt-6">
-            <div className="bg-purple-100 p-2 rounded-md">
-              <User className="h-8 w-8 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-gray-500">Vendors</p>
-              <h3 className="text-2xl font-bold">{mockVendors.length}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-row items-center pt-6">
-            <div className="bg-orange-100 p-2 rounded-md">
-              <User className="h-8 w-8 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-gray-500">Interns</p>
-              <h3 className="text-2xl font-bold">{mockInterns.length}</h3>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {currentView === 'list' ? (
+        <>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+            <Button variant="purple" onClick={() => navigate('/new-product')}>
+              <Plus className="h-4 w-4 mr-2" /> Place Order
+            </Button>
+          </div>
 
-      <Tabs defaultValue="products" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-md">
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="vendors">Vendors</TabsTrigger>
-          <TabsTrigger value="interns">Interns</TabsTrigger>
-        </TabsList>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                      <Package className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Products</p>
+                      <h3 className="text-2xl font-bold">{mockProducts.length}</h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="bg-green-100 p-2 rounded-lg mr-3">
+                      <Users className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Customers</p>
+                      <h3 className="text-2xl font-bold">{mockCustomers.length}</h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="bg-purple-100 p-2 rounded-lg mr-3">
+                      <User className="h-6 w-6 text-purple" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Vendors</p>
+                      <h3 className="text-2xl font-bold">{mockVendors.length}</h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="bg-yellow-100 p-2 rounded-lg mr-3">
+                      <CheckCircle className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Quotes</p>
+                      <h3 className="text-2xl font-bold">{mockQuotes.length}</h3>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        <TabsContent value={activeTab}>
-          {renderContent()}
-        </TabsContent>
-      </Tabs>
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Products Needing Quotes</CardTitle>
+              <p className="text-sm text-gray-500">Products waiting for pricing</p>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Date Added</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {unquotedProducts.map(product => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.customerName}</TableCell>
+                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetail(product.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View
+                        </Button>
+                        <Link to={`/product/${product.id}/quote`}>
+                          <Button variant="purple" size="sm">Quote</Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {unquotedProducts.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                        No products waiting for quotes
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>All Products</CardTitle>
+              <p className="text-sm text-gray-500">Overview of all products in the system</p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex space-x-2">
+                  <Tabs defaultValue="products" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="products">Products</TabsTrigger>
+                      <TabsTrigger value="customers">Customers</TabsTrigger>
+                      <TabsTrigger value="vendors">Vendors</TabsTrigger>
+                      <TabsTrigger value="interns">Interns</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Search..."
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={handleSearch}
+                  />
+                </div>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map(product => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.customerName}</TableCell>
+                      <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {product.selected_vendor_id ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Vendor Selected
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Awaiting Selection
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetail(product.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="mt-4 flex items-center justify-end">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious onClick={() => setPage(Math.max(1, page - 1))} />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <span className="text-sm text-gray-600">Page {page}</span>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext onClick={() => setPage(page + 1)} />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        renderDetailView()
+      )}
     </div>
   );
+
+  function renderDetailView() {
+    switch (activeTab) {
+      case "products":
+        return renderProductDetail();
+      case "customers":
+        return renderCustomerDetail();
+      case "vendors":
+        return renderVendorDetail();
+      case "interns":
+        return renderInternDetail();
+      default:
+        return renderProductDetail();
+    }
+  }
 }

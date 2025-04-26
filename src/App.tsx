@@ -32,7 +32,7 @@ const App = () => (
           <Route 
             path="/new-product" 
             element={
-              <AuthGuard allowedRoles={["intern"]}>
+              <AuthGuard allowedRoles={["intern", "admin"]}>
                 <NewProduct />
               </AuthGuard>
             } 
@@ -40,7 +40,7 @@ const App = () => (
           <Route 
             path="/product/:id/quote" 
             element={
-              <AuthGuard allowedRoles={["vendor"]}>
+              <AuthGuard allowedRoles={["vendor", "admin"]}>
                 <QuotesPage />
               </AuthGuard>
             } 
@@ -48,7 +48,7 @@ const App = () => (
           <Route 
             path="/product/:id/quote/edit" 
             element={
-              <AuthGuard allowedRoles={["vendor"]}>
+              <AuthGuard allowedRoles={["vendor", "admin"]}>
                 <QuotesPage />
               </AuthGuard>
             } 
