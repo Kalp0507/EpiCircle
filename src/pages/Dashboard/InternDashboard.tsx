@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { Eye, Plus, Package, Users, FileText } from "lucide-react";
@@ -16,48 +16,81 @@ import { supabase } from "@/supabaseClient";
 export default function InternDashboard() {
   const { currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const currentIntern = localStorage.getItem('bidboost_user');
   const currentInternObj = currentIntern ? JSON.parse(currentIntern) : null;
-
   // New state for customer selection/creation
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [addingCustomer, setAddingCustomer] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", location: "" });
   const [customersCount, setCustomersCount] = useState(0);
-  // Filter products for this intern
-  const [orders,setOrders ] = useState([])
+  const [customers, setCustomers] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [vendors, setVendors] = useState([])
 
-  useEffect(()=>{
-    const getCustomerCountByIntern = async(internId: string)=>{
+  // Filter products for this intern
+  const [orders, setOrders] = useState([])
+
+  useEffect(() => {
+    const getCustomerCountByIntern = async (internId: string) => {
       const { count, error } = await supabase
         .from("customers")
         .select("*", { count: "exact", head: true })
         .eq("added_by", internId);
-    
+
       if (error) {
         console.error("Error fetching customer count:", error);
         return 0;
       }
-    
+
       return count || 0;
     }
 
-    const getOrderByIntern = async(internId: string)=>{
+    const getOrderByIntern = async (internId: string) => {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
         .eq("intern_id", internId);
-    
+
       if (error) {
         console.error("Error fetching customer count:", error);
         return 0;
       }
-    
+
       return data || 0;
     }
+
+    const fetchCustomers = async () => {
+      const { data, error } = await supabase.from('customers').select('*')
+
+      if (error) throw error;
+
+      setCustomers(data);
+      console.log(data)
+    }
+
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from('products').select('*')
+
+      if (error) throw error;
+
+      setProducts(data);
+      console.log(data)
+    }
+
+    const fetchVendors = async () => {
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'vendor')
+
+      if (error) throw error;
+
+      setVendors(data);
+      console.log(data)
+    }
+
+
+    setLoading(true);
+    fetchCustomers();
+    fetchProducts();
+    fetchVendors();
 
     getCustomerCountByIntern(currentInternObj.id).then((count: number) => {
       setCustomersCount(count);
@@ -65,24 +98,26 @@ export default function InternDashboard() {
 
     getOrderByIntern(currentInternObj.id).then((data: Order[]) => {
       setOrders(data);
+      setLoading(false)
     });
-  },[])
+  }, [])
 
   const handleViewDetail = (productId: string) => {
-    setSelectedProductId(productId);
+    setSelectedOrderId(productId);
     setCurrentView('detail');
   };
 
   const handleBackToList = () => {
     setCurrentView('list');
-    setSelectedProductId(null);
+    setSelectedOrderId(null);
   };
 
-  const renderProductDetail = () => {
-    const product = orders.find(p => p.id === selectedProductId);
-    if (!product) return <div>Product not found</div>;
+  const renderOrderDetail = () => {
+    const order = orders.find(o => o.id === selectedOrderId);
+    if (!order) return <div>Product not found</div>;
 
-    const customer = orders.find(c => c.id === product.customer_id);
+    const customer = customers.find(c => c.id === order.customer_id);
+    const selectedVendors = vendors.filter(v => order.vendor_ids.includes(v.id));
 
     return (
       <div className="space-y-6">
@@ -93,76 +128,85 @@ export default function InternDashboard() {
             </svg>
             Back
           </Button>
-          <h2 className="text-2xl font-bold">Product Details: {product.name}</h2>
+          <h2 className="text-2xl font-bold">Order Details: {order.id}</h2>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-center mb-4">
-                <img 
-                  src={product.imageURLs[0]} 
-                  alt={product.name}
-                  className="h-48 w-auto object-cover rounded-md border"
-                />
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {customer && (
               <div className="space-y-2">
                 <div>
-                  <span className="font-semibold">Name:</span> {product.name}
+                  <span className="font-semibold">Name:</span> {customer.name}
                 </div>
                 <div>
-                  <span className="font-semibold">Description:</span> {product.description}
+                  <span className="font-semibold">Phone:</span> {customer.phone}
                 </div>
                 <div>
-                  <span className="font-semibold">Created:</span> {new Date(product.created_at).toLocaleDateString()}
+                  <span className="font-semibold">Location:</span> {customer.location}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {customer && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Products</CardTitle>
+          </CardHeader>
+          <div className="grid md:grid-cols-2 gap-6 divide-x-2 pb-2">
+            {order.product_ids.map((pid: string) => (
+              <CardContent className="space-y-4" key={pid}>
                 <div className="space-y-2">
                   <div>
-                    <span className="font-semibold">Name:</span> {customer.name}
+                    <span className="font-semibold">Name:</span> {products.find(p => p.id === pid).name}
                   </div>
                   <div>
-                    <span className="font-semibold">Phone:</span> {customer.phone}
+                    <span className="font-semibold">Description:</span> {products.find(p => p.id === pid).description}
                   </div>
                   <div>
-                    <span className="font-semibold">Location:</span> {customer.location}
+                    <span className="font-semibold">Created:</span> {new Date(products.find(p => p.id === pid).created_at).toLocaleDateString()}
                   </div>
+                <div className="flex justify-center mb-4">
+                  {products.find(p => p.id === pid).image_urls.map((url: string, index: number) => (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={pid}
+                      className="h-48 w-auto object-cover rounded-md border"
+                    />
+                  ))
+                  }
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                </div>
+              </CardContent>
+            ))}
+          </div>
+        </Card>
+
+
 
         <Card>
           <CardHeader>
             <CardTitle>Selected Vendors</CardTitle>
           </CardHeader>
           <CardContent>
-            {product.vendorNames.length > 0 ? (
+            {selectedVendors.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Vendor</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Location</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {product.vendorNames.map((vendorName, index) => (
-                    <TableRow key={index} className={product.vendor_ids[index] === product.selected_vendor_id ? "bg-green-50" : ""}>
-                      <TableCell>{vendorName}</TableCell>
-                      <TableCell>
+                  {selectedVendors.map((vendor, index) => (
+                    <TableRow key={index} className={"bg-green-50"}>
+                      <TableCell>{vendor.name}</TableCell>
+                      <TableCell>{vendor.location}</TableCell>
+                      {/* <TableCell>
                         {product.vendor_ids[index] === product.selected_vendor_id ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Selected
@@ -172,7 +216,7 @@ export default function InternDashboard() {
                             Pending
                           </span>
                         )}
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -245,21 +289,10 @@ export default function InternDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Customers</p>
-                  <h3 className="text-2xl font-bold">{ customersCount }</h3>
+                  <h3 className="text-2xl font-bold">{customersCount}</h3>
                 </div>
               </CardContent>
             </Card>
-            {/* <Card>
-              <CardContent className="flex flex-row items-center pt-6">
-                <div className="bg-amber-100 p-2 rounded-md">
-                  <FileText className="h-8 w-8 text-amber-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-gray-500">Pending Quotes</p>
-                  <h3 className="text-2xl font-bold">{internProducts.filter(p => !p.selected_vendor_id).length}</h3>
-                </div>
-              </CardContent>
-            </Card> */}
           </div>
 
           <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -289,8 +322,8 @@ export default function InternDashboard() {
                       <TableCell>{o.customer_id}</TableCell>
                       <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleViewDetail(o.id)}
                         >
@@ -305,8 +338,7 @@ export default function InternDashboard() {
           </div>
         </>
       ) : (
-        // renderProductDetail()
-        ''
+        renderOrderDetail()
       )}
     </div>
   );

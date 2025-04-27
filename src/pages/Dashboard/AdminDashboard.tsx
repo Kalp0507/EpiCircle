@@ -25,10 +25,16 @@ export default function AdminDashboard() {
   const [interns, setInterns] = useState([])
   const [admins, setAdmins] = useState([])
   const [products, setProducts] = useState([])
+  const [vendorForProduct, setVendorForProduct] = useState([])
   const [loading, setLoading] = useState(false)
 
   // Mock pagination state (not functional)
   const [page, setPage] = useState(1);
+
+  // State for vendor quotations
+  const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
+  const [vendorQuotationsLoading, setVendorQuotationsLoading] = useState(false);
+
 
   // for detail views
 
@@ -84,7 +90,15 @@ export default function AdminDashboard() {
       if (error) throw error;
 
       setProducts(data);
-      setLoading(false)
+      console.log(data)
+    }
+  
+    const fetchVendorForProduct = async () => {
+      const { data, error } = await supabase.from('product_vendors').select('*')
+
+      if (error) throw error;
+
+      setVendorForProduct(data);
       console.log(data)
     }
 
@@ -95,15 +109,32 @@ export default function AdminDashboard() {
     fetchInterns();
     fetchAdmins();
     fetchProducts();
+    fetchVendorForProduct();
+    setLoading(false)
   }, [])
 
-  // Vendor dashboard related states
-  const assignedProducts = [];
-  const quotedProductIds = []
-    .filter(q => q.vendorId === currentUser?.id || q.vendorName === currentUser?.name)
-    .map(q => q.productId);
-  const unquotedProducts = assignedProducts.filter(p => !quotedProductIds.includes(p.id));
-  const quotedProducts = assignedProducts.filter(p => quotedProductIds.includes(p.id));
+  useEffect(() => {
+    const fetchVendorQuotations = async () => {
+      if (activeTab === "vendors" && currentView === "detail" && selectedItemId) {
+        setVendorQuotationsLoading(true);
+        const vendor = vendors.find(v => v.id === selectedItemId);
+        if (!vendor) {
+          setVendorQuotations([]);
+          setVendorQuotationsLoading(false);
+          return;
+        }
+        const { data, error } = await supabase.from('product_vendors').select('*').eq('vendor_id', vendor.id);
+        if (!error) {
+          setVendorQuotations(data || []);
+        } else {
+          setVendorQuotations([]);
+        }
+        setVendorQuotationsLoading(false);
+      }
+    };
+    fetchVendorQuotations();
+
+  }, [activeTab, currentView, selectedItemId, vendors]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -119,35 +150,12 @@ export default function AdminDashboard() {
     setSelectedItemId(null);
   };
 
-  const filteredProducts = [].filter(
-    product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredCustomers = [].filter(
-    customer =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredVendors = [].filter(
-    vendor =>
-      vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vendor.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredInterns = [].filter(
-    intern =>
-      intern.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      intern.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const renderOrdersDetail = () => {
     const selectedOrder: Order = orders.find(o => o.id === selectedItemId);
     if (!selectedOrder) return <div>Order not found</div>;
 
     const relatedProducts = selectedOrder.product_ids.map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
+    console.log("rela",relatedProducts)
     const customer = customers.find(c => c.id === selectedOrder.customer_id);
     const intern = interns.find(i => i.id === selectedOrder.intern_id) || admins.find(a => a.id === selectedOrder.intern_id);
 
@@ -221,7 +229,7 @@ export default function AdminDashboard() {
                           <TableRow key={product.id}>
                             <TableCell>{product.name}</TableCell>
                             <TableCell>
-                              {product.quoted_price !== null ? `₹${product.quoted_price}` : "Not Quoted"}
+                              {vendorForProduct.find(data=>data.product_id === product.id).quoted_price !== null ? `₹${vendorForProduct.find(data=>data.product_id === product.id).quoted_price}` : "Not Quoted"}
                             </TableCell>
                             {/* <TableCell>
                               {product.is_selected ? (
@@ -344,33 +352,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // State for vendor quotations
-  const [vendorQuotations, setVendorQuotations] = useState<VendorQuotation[]>([]);
-  const [vendorQuotationsLoading, setVendorQuotationsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchVendorQuotations = async () => {
-      if (activeTab === "vendors" && currentView === "detail" && selectedItemId) {
-        setVendorQuotationsLoading(true);
-        const vendor = vendors.find(v => v.id === selectedItemId);
-        if (!vendor) {
-          setVendorQuotations([]);
-          setVendorQuotationsLoading(false);
-          return;
-        }
-        const { data, error } = await supabase.from('product_vendors').select('*').eq('vendor_id', vendor.id);
-        if (!error) {
-          setVendorQuotations(data || []);
-        } else {
-          setVendorQuotations([]);
-        }
-        setVendorQuotationsLoading(false);
-      }
-    };
-    fetchVendorQuotations();
-
-  }, [activeTab, currentView, selectedItemId, vendors]);
-
   const renderVendorDetail = () => {
     const vendor = vendors.find(v => v.id === selectedItemId);
     if (!vendor) return <div>Vendor not found</div>;
@@ -423,7 +404,7 @@ export default function AdminDashboard() {
                     <TableHead>Product Name</TableHead>
                     <TableHead>Quote Price</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Selected</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -462,10 +443,58 @@ export default function AdminDashboard() {
   };
 
   const renderInternDetail = () => {
-    const intern = mockInterns.find(i => i.id === selectedItemId);
+    const intern = interns.find(i => i.id === selectedItemId);
     if (!intern) return <div>Intern not found</div>;
 
-    const internProducts = mockProducts.filter(p => p.intern_id === intern.id);
+    const internProducts = orders
+      .filter(o => o.intern_id === intern.id)
+      .flatMap(o =>
+        o.product_ids
+          .map(pid => products.find(prod => prod.id === pid))
+          .filter(Boolean)
+      );
+
+    console.log(internProducts)
+    const getCustomerName = async (pid: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('customer_id')
+          .contains('product_ids', [pid])  // key point: use `.contains`
+          .maybeSingle(); // because there could be 0 or 1 matching orders
+
+        if (error) {
+          console.error("Error fetching customer_id:", error.message);
+          return null;
+        }
+
+        if (!data) {
+          console.warn("No matching order found for product_id:", pid);
+          return null;
+        }
+
+        const customer_name = customers.find(c => c.id === data.customer_id).name
+        return customer_name;
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        return null;
+      }
+    }
+
+    const CustomerNameRow = ({ product }) => {
+      const [customerName, setCustomerName] = useState<string | null>(null);
+
+      useEffect(() => {
+        const fetchCustomerName = async () => {
+          const name = await getCustomerName(product.id);
+          setCustomerName(name);
+        };
+
+        fetchCustomerName();
+      }, [product.id]);
+
+      return <TableCell>{customerName || "Loading..."}</TableCell>;
+    };
 
     return (
       <div className="space-y-6">
@@ -518,7 +547,7 @@ export default function AdminDashboard() {
                   {internProducts.map(product => (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.customerName}</TableCell>
+                      <CustomerNameRow product={product} />
                       <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
                         {product.selected_vendor_id ? (

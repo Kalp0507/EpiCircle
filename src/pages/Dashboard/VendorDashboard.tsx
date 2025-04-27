@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { Eye, Package, CheckCircle, Clock } from "lucide-react";
@@ -20,19 +20,20 @@ export default function VendorDashboard() {
   const [products, setProducts] = useState([])
   const [unquotedOrders, setUnquotedOrders] = useState([]);
   const [quotedOrders, setQuotedOrders] = useState([]);
+  const [productDetails, setProductDetails] = useState([])
 
-  useEffect(()=>{
+  useEffect(() => {
     async function getOrdersByVendor(vendorId: string) {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
         .contains("vendor_ids", [vendorId]);
-    
+
       if (error) {
         console.error("Error fetching orders:", error);
         return [];
       }
-    
+
       return data;
     }
 
@@ -41,14 +42,25 @@ export default function VendorDashboard() {
         .from("product_vendors")
         .select("*")
         .eq("vendor_id", vendorId);
-    
+
       if (error) {
         console.error("Error fetching product_vendors:", error);
         return [];
       }
-    
+
       return data;
     }
+
+    const fetchProductDetils = async () => {
+      const { data, error } = await supabase.from('products').select('*')
+
+      if (error) throw error;
+
+      setProductDetails(data);
+      console.log(data)
+    }
+
+    fetchProductDetils();
 
     getOrdersByVendor(currentUser.id).then((data) => {
       setOrders(data);
@@ -59,55 +71,61 @@ export default function VendorDashboard() {
       setProducts(data);
       console.log(data)
     });
-  },[])
+  }, [])
 
-  useEffect(()=>{
+  useEffect(() => {
     async function getOrdersWithUnquotedProducts() {
       const filteredOrders = [];
-    
+      console.log('order',orders)
+
       for (const order of orders) {
-        let quoted = false;
+        // let quoted = false;
         let product = [];
         for (const productId of order.product_ids) {
-          product = products.filter((p)=>p.product_id === productId && p.quoted_price === null)
+          product = products.filter((p) => p.product_id === productId).filter(p=>p.quoted_price === null)
         }
-        quoted = product.length === order.product_ids.length ? true : false; 
+        // quoted = product.length === order.product_ids.length ? true : false;
 
-        if(quoted){
+        // if (quoted) {
           filteredOrders.push(order)
-        }
+        // }
+
+        console.log('product-vendor',product)
       }
-    
+
+      console.log('unquoted',filteredOrders)
+
       return filteredOrders;
     }
 
     async function getOrdersWithQuotedProducts() {
       const filteredOrders = [];
-    
+
       for (const order of orders) {
-        let quoted = false;
+        // let quoted = false;
         let product = [];
         for (const productId of order.product_ids) {
-          product = products.filter((p)=>p.product_id === productId && p.quoted_price !== null)
+          product = products.filter((p) => p.product_id === productId).filter(p=>p.quoted_price !== null)
         }
-        quoted = product.length === order.product_ids.length ? true : false; 
+        console.log("products", products)
+        // quoted = product.length === order.product_ids.length ? true : false;
 
-        if(quoted){
+        // if (quoted) {
           filteredOrders.push(order)
-        }
+        // }
       }
-    
+
       return filteredOrders;
     }
 
-    getOrdersWithUnquotedProducts().then((filteredOrders)=>{
+    getOrdersWithUnquotedProducts().then((filteredOrders) => {
       setUnquotedOrders(filteredOrders)
     });
 
-    getOrdersWithQuotedProducts().then((filteredOrders)=>{
+    getOrdersWithQuotedProducts().then((filteredOrders) => {
       setQuotedOrders(filteredOrders)
     });
-  },[orders, products])
+  }, [orders, products])
 
   const handleViewDetail = (clickedOrder: Order) => {
     setSelectedOrderId(clickedOrder);
@@ -119,104 +137,104 @@ export default function VendorDashboard() {
     setSelectedOrderId(null);
   };
 
-const renderOrderDetail = () => {
-  const selectedOrder = orders.find((o) => o.id === selectedOrderId);
-  if (!selectedOrder) return <div>Order not found</div>;
+  const renderOrderDetail = () => {
+    const selectedOrder = orders.find((o) => o.id === selectedOrderId);
+    if (!selectedOrder) return <div>Order not found</div>;
 
-  const relatedProducts = selectedOrder.product_ids
-  .map(id => products.find(prod => prod.product_id === id))
-  .filter(Boolean); // removes any undefined if not found
+    const relatedProducts = selectedOrder.product_ids
+      .map((id: string) => products.find(prod => prod.product_id === id))
+      .filter(Boolean); // removes any undefined if not found
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center mb-6">
-        <Button variant="outline" size="sm" onClick={handleBackToList} className="mr-2">
-          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </Button>
-        <h2 className="text-2xl font-bold">Order Details: {selectedOrder.id}</h2>
-      </div>
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center mb-6">
+          <Button variant="outline" size="sm" onClick={handleBackToList} className="mr-2">
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </Button>
+          <h2 className="text-2xl font-bold">Order Details: {selectedOrder.id}</h2>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Info</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div>
-            <span className="font-semibold">Order ID:</span> {selectedOrder.id}
-          </div>
-          <div>
-            <span className="font-semibold">Customer ID:</span> {selectedOrder.customer_id}
-          </div>
-          <div>
-            <span className="font-semibold">Created:</span> {new Date(selectedOrder.created_at).toLocaleDateString()}
-          </div>
-          <div>
-            <span className="font-semibold">Total Products:</span> {selectedOrder.product_ids.length}
-          </div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Info</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <span className="font-semibold">Order ID:</span> {selectedOrder.id}
+            </div>
+            <div>
+              <span className="font-semibold">Customer ID:</span> {selectedOrder.customer_id}
+            </div>
+            <div>
+              <span className="font-semibold">Created:</span> {new Date(selectedOrder.created_at).toLocaleDateString()}
+            </div>
+            <div>
+              <span className="font-semibold">Total Products:</span> {selectedOrder.product_ids.length}
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Associated Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {relatedProducts.length === 0 ? (
-            <p className="text-gray-500">No associated product details found for this vendor.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product ID</TableHead>
-                  <TableHead>Quoted Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {relatedProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>{product.product_id}</TableCell>
-                    <TableCell>
-                      {product.quoted_price !== null ? `₹${product.quoted_price}` : "Not Quoted"}
-                    </TableCell>
-                    <TableCell>
-                      {product.is_selected ? (
-                        <span className="text-green-600 font-medium">Selected</span>
-                      ) : product.quoted_price !== null ? (
-                        <span className="text-yellow-600 font-medium">Quoted</span>
-                      ) : (
-                        <span className="text-gray-500">Pending</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {product.quoted_price !== null ? (
-                        <Link to={`/product/${product.product_id}/quote/edit`}>
-                          <Button size="sm" variant="outline">Edit</Button>
-                        </Link>
-                      ) : (
-                        <Link to={`/product/${product.product_id}/quote`}>
-                          <Button variant="purple" size="sm">
-                            Quote
-                          </Button>
-                        </Link>
-                      )}
-                    </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle>Associated Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {relatedProducts.length === 0 ? (
+              <p className="text-gray-500">No associated product details found for this vendor.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product ID</TableHead>
+                    <TableHead>Quoted Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+                </TableHeader>
+                <TableBody>
+                  {relatedProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>{product.product_id}</TableCell>
+                      <TableCell>
+                        {product.quoted_price !== null ? `₹${product.quoted_price}` : "Not Quoted"}
+                      </TableCell>
+                      <TableCell>
+                        {product.is_selected ? (
+                          <span className="text-green-600 font-medium">Selected</span>
+                        ) : product.quoted_price !== null ? (
+                          <span className="text-yellow-600 font-medium">Quoted</span>
+                        ) : (
+                          <span className="text-gray-500">Pending</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {product.quoted_price !== null ? (
+                          <Link to={`/product/${product.product_id}/quote/edit`}>
+                            <Button size="sm" variant="outline">Edit</Button>
+                          </Link>
+                        ) : (
+                          <Link to={`/product/${product.product_id}/quote`}>
+                            <Button variant="purple" size="sm">
+                              Quote
+                            </Button>
+                          </Link>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
-console.log(quotedOrders,unquotedOrders)
+  console.log(quotedOrders, unquotedOrders)
 
   return (
     <div className="space-y-6">
@@ -239,7 +257,7 @@ console.log(quotedOrders,unquotedOrders)
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Unquoted Products</p>
-                  <h3 className="text-2xl font-bold">{products.filter((i)=>i.quoted_price === null).length}</h3>
+                  <h3 className="text-2xl font-bold">{products.filter((i) => i.quoted_price === null).length}</h3>
                 </div>
               </CardContent>
             </Card>
@@ -250,7 +268,7 @@ console.log(quotedOrders,unquotedOrders)
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Quoted Products</p>
-                  <h3 className="text-2xl font-bold">{products.filter((i)=>i.quoted_price !== null).length}</h3>
+                  <h3 className="text-2xl font-bold">{products.filter((i) => i.quoted_price !== null).length}</h3>
                 </div>
               </CardContent>
             </Card>
@@ -262,7 +280,7 @@ console.log(quotedOrders,unquotedOrders)
                 <div className="ml-4">
                   <p className="text-sm text-gray-500">Selected Quotes</p>
                   <h3 className="text-2xl font-bold">
-                    {products.filter((i)=>i.is_selected === true).length}
+                    {products.filter((i) => i.is_selected === true).length}
                   </h3>
                 </div>
               </CardContent>
@@ -296,8 +314,8 @@ console.log(quotedOrders,unquotedOrders)
                       <TableCell>{o.customer_id}</TableCell>
                       <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="space-x-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleViewDetail(o.id)}
                           className="mr-2"
@@ -351,8 +369,8 @@ console.log(quotedOrders,unquotedOrders)
                           )}
                         </TableCell> */}
                         <TableCell>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleViewDetail(o.id)}
                           >
