@@ -21,13 +21,16 @@ export default function VendorDashboard() {
   const [unquotedOrders, setUnquotedOrders] = useState([]);
   const [quotedOrders, setQuotedOrders] = useState([]);
   const [productDetails, setProductDetails] = useState([])
+  const [customers, setCustomers] = useState([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     async function getOrdersByVendor(vendorId: string) {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .contains("vendor_ids", [vendorId]);
+        .contains("vendor_ids", [vendorId])
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Error fetching orders:", error);
@@ -52,15 +55,22 @@ export default function VendorDashboard() {
     }
 
     const fetchProductDetils = async () => {
-      const { data, error } = await supabase.from('products').select('*')
-
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false })
       if (error) throw error;
-
       setProductDetails(data);
       console.log(data)
     }
 
+    const fetchCustomers = async () => {
+      const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false })
+      if (error) throw error;
+      setCustomers(data);
+      console.log(data)
+    }
+
+    setLoading(true)
     fetchProductDetils();
+    fetchCustomers();
 
     getOrdersByVendor(currentUser.id).then((data) => {
       setOrders(data);
@@ -71,30 +81,28 @@ export default function VendorDashboard() {
       setProducts(data);
       console.log(data)
     });
+
+    setLoading(false)
   }, [])
 
   useEffect(() => {
     async function getOrdersWithUnquotedProducts() {
       const filteredOrders = [];
-      console.log('order',orders)
 
       for (const order of orders) {
-        // let quoted = false;
-        let product = [];
+        let quoted = false;
+        const product = [];
         for (const productId of order.product_ids) {
-          product = products.filter((p) => p.product_id === productId).filter(p=>p.quoted_price === null)
+          product.push(...products.filter((p) => p.product_id === productId).filter(p => !p.quoted_price))
         }
-        // quoted = product.length === order.product_ids.length ? true : false;
+        quoted = product.length < order.product_ids.length && product.length > 0 ? true : false;
 
-        // if (quoted) {
+        if (quoted) {
           filteredOrders.push(order)
-        // }
-
-        console.log('product-vendor',product)
+        }
       }
 
-      console.log('unquoted',filteredOrders)
-
+      console.log('unquoted', filteredOrders)
       return filteredOrders;
     }
 
@@ -102,17 +110,16 @@ export default function VendorDashboard() {
       const filteredOrders = [];
 
       for (const order of orders) {
-        // let quoted = false;
-        let product = [];
+        let quoted = false;
+        const product = [];
         for (const productId of order.product_ids) {
-          product = products.filter((p) => p.product_id === productId).filter(p=>p.quoted_price !== null)
+          product.push(...products.filter((p) => p.product_id === productId).filter(p => p.quoted_price))
         }
-        console.log("products", products)
-        // quoted = product.length === order.product_ids.length ? true : false;
+        quoted = product.length === order.product_ids.length ? true : false;
 
-        // if (quoted) {
+        if (quoted) {
           filteredOrders.push(order)
-        // }
+        }
       }
 
       return filteredOrders;
@@ -293,41 +300,49 @@ export default function VendorDashboard() {
               <h3 className="text-lg font-medium leading-6 text-gray-900">Products Needing Quotes</h3>
               <p className="mt-1 text-sm text-gray-500">Products assigned to you waiting for pricing</p>
             </div>
-            {unquotedOrders.length === 0 ? (
-              <div className="p-6 text-center">
-                <p className="text-gray-500">No products currently need quoting. Check back later!</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date Added</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {unquotedOrders.map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-medium">{o.id}</TableCell>
-                      <TableCell>{o.customer_id}</TableCell>
-                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetail(o.id)}
-                          className="mr-2"
-                        >
-                          <Eye className="h-4 w-4 mr-1" /> View
-                        </Button>
-                      </TableCell>
+            {loading ? 
+                <p>Loading data....</p>
+              : unquotedOrders.length === 0 ? (
+                <div className="p-6 text-center">
+                  <p className="text-gray-500">No products currently need quoting. Check back later!</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Date Added</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                  </TableHeader>
+                  <TableBody>
+                    {unquotedOrders.map((o) => (
+                      <TableRow key={o.id}>
+                        <TableCell className="font-medium">{o.id}</TableCell>
+                        <TableCell>{customers.find(c => c.id === o.customer_id).name}</TableCell>
+                        <TableCell>
+                          {new Date(o.created_at).toLocaleString('en-IN', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                            hour12: true,
+                          })}
+                        </TableCell>
+                        <TableCell className="space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetail(o.id)}
+                            className="mr-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" /> View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
           </div>
 
           {/* Quoted products */}
@@ -347,7 +362,7 @@ export default function VendorDashboard() {
                   <TableRow>
                     <TableHead>Order</TableHead>
                     <TableHead>Customer</TableHead>
-                    {/* <TableHead>Status</TableHead> */}
+                    <TableHead>Date</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -356,7 +371,14 @@ export default function VendorDashboard() {
                     return (
                       <TableRow key={o.id} >
                         <TableCell className="font-medium">{o.id}</TableCell>
-                        <TableCell>{o.customer_id}</TableCell>
+                        <TableCell>{customers.find(c => c.id === o.customer_id).name}</TableCell>
+                        <TableCell>
+                          {new Date(o.created_at).toLocaleString('en-IN', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                            hour12: true,
+                          })}
+                        </TableCell>
                         {/* <TableCell>
                           {quote?.isSelected ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

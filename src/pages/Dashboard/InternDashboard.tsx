@@ -198,6 +198,7 @@ export default function InternDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Vendor</TableHead>
+                    <TableHead>Phone</TableHead>
                     <TableHead>Location</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -205,6 +206,7 @@ export default function InternDashboard() {
                   {selectedVendors.map((vendor, index) => (
                     <TableRow key={index} className={"bg-green-50"}>
                       <TableCell>{vendor.name}</TableCell>
+                      <TableCell>{vendor.phone}</TableCell>
                       <TableCell>{vendor.location}</TableCell>
                       {/* <TableCell>
                         {product.vendor_ids[index] === product.selected_vendor_id ? (
@@ -231,9 +233,6 @@ export default function InternDashboard() {
       </div>
     );
   };
-
-
-
 
   return (
     <div className="space-y-6">
@@ -319,8 +318,14 @@ export default function InternDashboard() {
                   {orders.map((o) => (
                     <TableRow key={o.id}>
                       <TableCell className="font-medium">{o.id}</TableCell>
-                      <TableCell>{o.customer_id}</TableCell>
-                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>{customers.find(c => c.id === o.customer_id)?.name}</TableCell>
+                      <TableCell>
+                        {new Date(o.created_at).toLocaleString('en-IN', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                          hour12: true,
+                        })}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="outline"

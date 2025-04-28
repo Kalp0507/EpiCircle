@@ -52,7 +52,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      const { data, error } = await supabase.from('orders').select('*')
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
     }
 
     const fetchCustomers = async () => {
-      const { data, error } = await supabase.from('customers').select('*')
+      const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
     }
 
     const fetchVendors = async () => {
-      const { data, error } = await supabase.from('users').select('*').eq('role', 'vendor')
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'vendor').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -79,7 +79,7 @@ export default function AdminDashboard() {
     }
 
     const fetchInterns = async () => {
-      const { data, error } = await supabase.from('users').select('*').eq('role', 'intern')
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'intern').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
     }
 
     const fetchAdmins = async () => {
-      const { data, error } = await supabase.from('users').select('*').eq('role', 'admin')
+      const { data, error } = await supabase.from('users').select('*').eq('role', 'admin').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
     }
 
     const fetchProducts = async () => {
-      const { data, error } = await supabase.from('products').select('*')
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
     }
 
     const fetchVendorForProduct = async () => {
-      const { data, error } = await supabase.from('product_vendors').select('*')
+      const { data, error } = await supabase.from('product_vendors').select('*').order('created_at', { ascending: false })
 
       if (error) throw error;
 
@@ -630,12 +630,12 @@ export default function AdminDashboard() {
 
         {activeTab === "orders" && (
           <Card className="mt-6">
-            <CardHeader>
+            {/* <CardHeader>
               <CardTitle>All Orders</CardTitle>
               <p className="text-sm text-gray-500">Overview of all orders in the system</p>
-            </CardHeader>
-            <CardContent>
+            </CardHeader> */}
 
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -655,7 +655,13 @@ export default function AdminDashboard() {
                       <TableCell>{customers.find(c => c.id === o.customer_id)?.name}</TableCell>
                       {/* <TableCell>{o.intern_id}</TableCell> */}
                       <TableCell>{interns.find(c => c.id === o.intern_id)?.name || (admins.find(a => a.id === o.intern_id)?.name + ' (admin)')}</TableCell>
-                      <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(o.created_at).toLocaleString('en-IN', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                          hour12: true,
+                        })}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="outline"
@@ -865,31 +871,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {
-        showAddVendorModal && (
-          <div className="fixed inset-0 z-40 transition-all bg-black overlay bg-opacity-60 flex items-center justify-center">
-            <div className="p-6 flex flex-col gap-6 justify-center w-[70%] mx-auto bg-white rounded-lg">
-              <p className="bg-gradient-to-r from-purple to-purple-dark bg-clip-text text-transparent text-2xl font-bold">Add New Vendor</p>
-              <SignUpForm
-                name={name}
-                setName={setName}
-                phone={phone}
-                setPhone={setPhone}
-                password={password}
-                setPassword={setPassword}
-                location={location}
-                setLocation={setLocation}
-                role={'vendor'}
-                isLoading={isLoading}
-                error={error}
-                onSubmit={(e) => handleAddVendorSubmit(e)}
-                onBack={handleModalBack}
-                label='Add'
-              />
-            </div>
+      {showAddVendorModal && (
+        <div className="fixed inset-0 z-40 transition-all bg-black overlay bg-opacity-60 flex items-center justify-center">
+          <div className="p-6 flex flex-col gap-6 justify-center w-[70%] mx-auto bg-white rounded-lg">
+            <p className="bg-gradient-to-r from-purple to-purple-dark bg-clip-text text-transparent text-2xl font-bold">Add New Vendor</p>
+            <SignUpForm
+              name={name}
+              setName={setName}
+              phone={phone}
+              setPhone={setPhone}
+              password={password}
+              setPassword={setPassword}
+              location={location}
+              setLocation={setLocation}
+              role={'vendor'}
+              isLoading={isLoading}
+              error={error}
+              onSubmit={(e) => handleAddVendorSubmit(e)}
+              onBack={handleModalBack}
+              label='Add'
+            />
           </div>
-        )
-      }
+        </div>
+      )}
       {currentView === 'list' ? (
         <>
           <div className="flex justify-between items-center mb-6">
