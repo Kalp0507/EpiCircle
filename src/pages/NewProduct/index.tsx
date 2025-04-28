@@ -64,7 +64,7 @@ export default function NewProduct() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
-  const currentIntern = localStorage.getItem('bidboost_user');
+  const currentIntern = localStorage.getItem('user');
   const currentInternObj = currentIntern ? JSON.parse(currentIntern) : null;
 
   useEffect(() => {

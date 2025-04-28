@@ -17,7 +17,7 @@ export default function InternDashboard() {
   const { currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const currentIntern = localStorage.getItem('bidboost_user');
+  const currentIntern = localStorage.getItem('user');
   const currentInternObj = currentIntern ? JSON.parse(currentIntern) : null;
   // New state for customer selection/creation
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);

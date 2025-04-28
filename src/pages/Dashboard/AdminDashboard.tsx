@@ -11,6 +11,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/supabaseClient";
+import SignUpForm from "@/components/auth/SignUpForm";
+import { toast } from "@/hooks/use-toast";
+import bcrypt from "bcryptjs";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -27,6 +30,15 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([])
   const [vendorForProduct, setVendorForProduct] = useState([])
   const [loading, setLoading] = useState(false)
+  const [showAddVendorModal, setShowAddVendorModal] = useState(false)
+
+  // for add new vendor
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Mock pagination state (not functional)
   const [page, setPage] = useState(1);
@@ -92,7 +104,7 @@ export default function AdminDashboard() {
       setProducts(data);
       console.log(data)
     }
-  
+
     const fetchVendorForProduct = async () => {
       const { data, error } = await supabase.from('product_vendors').select('*')
 
@@ -155,7 +167,7 @@ export default function AdminDashboard() {
     if (!selectedOrder) return <div>Order not found</div>;
 
     const relatedProducts = selectedOrder.product_ids.map((pid) => products.find((p) => p.id === pid)).filter(Boolean);
-    console.log("rela",relatedProducts)
+    console.log("rela", relatedProducts)
     const customer = customers.find(c => c.id === selectedOrder.customer_id);
     const intern = interns.find(i => i.id === selectedOrder.intern_id) || admins.find(a => a.id === selectedOrder.intern_id);
 
@@ -229,7 +241,7 @@ export default function AdminDashboard() {
                           <TableRow key={product.id}>
                             <TableCell>{product.name}</TableCell>
                             <TableCell>
-                              {vendorForProduct.find(data=>data.product_id === product.id).quoted_price !== null ? `₹${vendorForProduct.find(data=>data.product_id === product.id).quoted_price}` : "Not Quoted"}
+                              {vendorForProduct.find(data => data.product_id === product.id).quoted_price !== null ? `₹${vendorForProduct.find(data => data.product_id === product.id).quoted_price}` : "Not Quoted"}
                             </TableCell>
                             {/* <TableCell>
                               {product.is_selected ? (
@@ -789,15 +801,107 @@ export default function AdminDashboard() {
     );
   };
 
+  const handleAddVendorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const { data: existingUsers, error: fetchError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("phone", phone);
+
+      if (fetchError) throw fetchError;
+      if (existingUsers && existingUsers.length > 0) {
+        throw new Error("Phone number already registered");
+      }
+
+      if (!error && existingUsers.length <= 0) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const { data: newVendor, error: insertError } = await supabase
+          .from("users")
+          .insert({
+            name: name,
+            phone: phone,
+            password: hashedPassword,
+            role: 'vendor',
+            location: location || null,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        toast({
+          title: "Vendor added",
+          description: `${name} is adde successfully.`,
+        });
+
+        setShowAddVendorModal(false)
+        setPhone('')
+        setPassword('')
+        setName('')
+        setLocation('')
+        setIsLoading(false)
+        setError('')
+      }
+
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send verification code. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleModalBack = () => {
+    setShowAddVendorModal(false)
+    setPhone('')
+    setPassword('')
+    setName('')
+    setLocation('')
+    setIsLoading(false)
+    setError('')
+  }
+
   return (
     <div className="space-y-6">
+      {
+        showAddVendorModal && (
+          <div className="fixed inset-0 z-40 transition-all bg-black overlay bg-opacity-60 flex items-center justify-center">
+            <div className="p-6 flex flex-col gap-6 justify-center w-[70%] mx-auto bg-white rounded-lg">
+              <p className="bg-gradient-to-r from-purple to-purple-dark bg-clip-text text-transparent text-2xl font-bold">Add New Vendor</p>
+              <SignUpForm
+                name={name}
+                setName={setName}
+                phone={phone}
+                setPhone={setPhone}
+                password={password}
+                setPassword={setPassword}
+                location={location}
+                setLocation={setLocation}
+                role={'vendor'}
+                isLoading={isLoading}
+                error={error}
+                onSubmit={(e) => handleAddVendorSubmit(e)}
+                onBack={handleModalBack}
+                label='Add'
+              />
+            </div>
+          </div>
+        )
+      }
       {currentView === 'list' ? (
         <>
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <Button variant="purple" onClick={() => navigate('/new-product')}>
-              <Plus className="h-4 w-4 mr-2" /> Place Order
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button variant="purple" onClick={() => setShowAddVendorModal(true)}>
+                <Plus className="h-4 w-4" /> Add Vendor
+              </Button>
+              <Button variant="purple" onClick={() => navigate('/new-product')}>
+                <Plus className="h-4 w-4" /> Place Order
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

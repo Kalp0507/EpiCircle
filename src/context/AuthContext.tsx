@@ -30,13 +30,14 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("bidboost_user");
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
     }
+    setIsLoading(false)
   }, []);
 
   const signUp = async (userData: {
@@ -74,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { password, ...userWithoutPassword } = newUser;
       setCurrentUser(userWithoutPassword);
-      localStorage.setItem("bidboost_user", JSON.stringify(userWithoutPassword));
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
     } catch (error) {
       console.error("Sign up error:", error);
       throw error;
@@ -99,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { password: _, ...userWithoutPassword } = users;
       setCurrentUser(userWithoutPassword);
-      localStorage.setItem("bidboost_user", JSON.stringify(userWithoutPassword));
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
     } catch (error) {
       console.error("Sign in error:", error);
       throw error;
@@ -112,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       setCurrentUser(null);
-      localStorage.removeItem("bidboost_user");
+      localStorage.removeItem("user");
     } catch (error) {
       console.error("Sign out error:", error);
       throw error;

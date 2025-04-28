@@ -18,6 +18,7 @@ interface SignUpFormProps {
   error: string;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onBack: () => void;
+  label?: string;
 }
 
 const SignUpForm = ({
@@ -34,6 +35,7 @@ const SignUpForm = ({
   error,
   onSubmit,
   onBack,
+  label
 }: SignUpFormProps) => {
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
@@ -42,7 +44,7 @@ const SignUpForm = ({
           {error}
         </div>
       )}
-      
+
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-gray-700">
           Full Name
@@ -63,7 +65,7 @@ const SignUpForm = ({
           />
         </div>
       </div>
-      
+
       <div>
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
           Phone Number
@@ -86,7 +88,7 @@ const SignUpForm = ({
           />
         </div>
       </div>
-      
+
       {(role === 'vendor' || role === 'intern') && (
         <div>
           <label htmlFor="location" className="block text-sm font-medium text-gray-700">
@@ -109,7 +111,7 @@ const SignUpForm = ({
           </div>
         </div>
       )}
-      
+
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Password
@@ -130,11 +132,11 @@ const SignUpForm = ({
           />
         </div>
       </div>
-      
+
       <div className="flex justify-between">
-        <Button 
-          type="button" 
-          variant="outline" 
+        <Button
+          type="button"
+          variant="outline"
           onClick={onBack}
         >
           Back
@@ -144,7 +146,7 @@ const SignUpForm = ({
           variant="purple"
           disabled={isLoading}
         >
-          {isLoading ? "Sending code..." : "Continue"}
+          {isLoading ? "Sending code..." : label ? label : "Continue"}
         </Button>
       </div>
     </form>
