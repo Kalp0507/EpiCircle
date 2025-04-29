@@ -207,6 +207,23 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+
+              <div className="space-y-2 pb-3 border-b">
+                <h3 className="font-medium text-gray-700">Selected Vendors</h3>
+                {selectedOrder.vendor_ids && (selectedOrder.vendor_ids.map((vid, index) => {
+                  const vendor = vendors.find(v => v.id === vid)
+                  return (
+                    <div key={vid} className="flex gap-2 items-start">
+                      <div className="font-semibold">{index += 1}.</div>
+                      <div>
+                        <div><span className="font-semibold">Name:</span> {vendor.name}</div>
+                        <div><span className="font-semibold">Phone:</span> {vendor.phone}</div>
+                        <div><span className="font-semibold">Location:</span> {vendor.location || 'ADMIN'}</div>
+                      </div>
+                    </div>
+                  )
+                }))}
+              </div>
               {/* <div className="mt-4 p-4 border rounded-md bg-gray-50 text-center">
                 <p className="text-gray-500 mb-2">You can submit a quote for this product</p>
                 <Link to={`/product/${product.id}/quote`}>
@@ -253,11 +270,11 @@ export default function AdminDashboard() {
                               )}
                             </TableCell> */}
                             <TableCell>
-                              <Link to={`/product/${product.product_id}/quote/edit`}>
+                              <Link to={`/product/${product.id}/quote/edit`}>
                                 <Button size="sm" variant="outline">Edit</Button>
                               </Link>
                               {product.quoted_price !== null && (
-                                <Link to={`/product/${product.product_id}/quote`}>
+                                <Link to={`/product/${product.id}/quote`}>
                                   <Button variant="purple" size="sm">
                                     Quote
                                   </Button>
@@ -642,6 +659,7 @@ export default function AdminDashboard() {
                     <TableHead>Order-id</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Intern</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -655,6 +673,7 @@ export default function AdminDashboard() {
                       <TableCell>{customers.find(c => c.id === o.customer_id)?.name}</TableCell>
                       {/* <TableCell>{o.intern_id}</TableCell> */}
                       <TableCell>{interns.find(c => c.id === o.intern_id)?.name || (admins.find(a => a.id === o.intern_id)?.name + ' (admin)')}</TableCell>
+                      <TableCell>{o.status}</TableCell>
                       <TableCell>
                         {new Date(o.created_at).toLocaleString('en-IN', {
                           dateStyle: 'medium',

@@ -8,7 +8,7 @@ import { DollarSign } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/supabaseClient";
 import { useNavigate } from "react-router-dom";
-import { Product } from "@/types";
+import { Order, Product } from "@/types";
 
 const QuotesPage = () => {
   const [price, setPrice] = useState("");
@@ -69,27 +69,121 @@ const QuotesPage = () => {
     fetchProduct();
   }, []);
 
+  const checkOrderStatus = async (pid: string) => {
+    try {
+      const { data: orders, error: err } = await supabase
+        .from("orders")
+        .select('*')
+        .contains('product_ids', [pid]);
+  
+      if (err || !orders || orders.length === 0) {
+        console.error('Order not found or error:', err);
+        return { id: null, status: 'Order Not Found' };
+      }
+  
+      const { data: quotations, error: quoteErr } = await supabase
+        .from("product_vendors")
+        .select('*');
+  
+      if (quoteErr) {
+        console.error('Error fetching quotations:', quoteErr);
+        return { id: orders[0]?.id || null, status: 'Error' };
+      }
+  
+      const order = orders[0]; // assuming one order
+      const productIDs = order.product_ids;
+  
+      let quotedCount = 0;
+      let selectedTrueCount = 0;
+      let selectedFalseCount = 0;
+  
+      productIDs.forEach(pid => {
+        const matchingQuotations = quotations.filter(q => q.product_id === pid);
+  
+        const hasQuoted = matchingQuotations.some(q => q.quoted_price);
+        const allSelectedTrue = matchingQuotations.every(q => q.is_selected === true);
+        const allSelectedFalse = matchingQuotations.every(q => q.is_selected === false);
+  
+        if (hasQuoted) quotedCount++;
+  
+        if (allSelectedTrue) selectedTrueCount++;
+        else if (allSelectedFalse) selectedFalseCount++;
+      });
+  
+      let status = 'Quoted';
+  
+      if (quotedCount === 0) {
+        status = 'Order Placed';
+      } else if (quotedCount < productIDs.length) {
+        status = 'Not Quoted';
+      } else {
+        if (selectedTrueCount === productIDs.length) {
+          status = 'Order Confirmed';
+        } else if (selectedFalseCount === productIDs.length) {
+          status = 'Order Cancelled';
+        }
+      }
+  
+      return { id: order.id, status };
+  
+    } catch (error) {
+      console.log('Error checking order status:', error);
+      return { id: null, status: 'Error' };
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const { error } = await supabase
+  
+    if (!product?.id) {
+      console.error("Product ID is missing.");
+      alert("Invalid product. Please try again.");
+      return;
+    }
+  
+    // Step 1: Update quote
+    const { error: quoteError } = await supabase
       .from("product_vendors")
       .update({
         quoted_price: parseFloat(price),
-        // quote_notes: notes, // assuming you also want to save notes
+        // quote_notes: notes, // Uncomment if you're storing notes
       })
-      .eq("product_id", product?.id);
-
-    if (error) {
-      console.error("Failed to submit quote:", error.message);
+      .eq("product_id", product.id);
+  
+    if (quoteError) {
+      console.error("Failed to submit quote:", quoteError.message);
       alert("Failed to submit quote. Please try again.");
-    } else {
-      console.log("Quote submitted successfully!");
-      setPrice("");
-      setNotes("");
-      navigate('/dashboard');
+      return;
     }
+  
+    // Step 2: Check order status
+    const { id: orderId, status: orderStatus } = await checkOrderStatus(product.id);
+  
+    if (!orderId) {
+      console.error("Order ID not found for product:", product.id);
+      alert("Failed to update order status. Please try again.");
+      return;
+    }
+  
+    // Step 3: Update order status
+    const { error: statusError } = await supabase
+      .from("orders")
+      .update({ status: orderStatus })
+      .eq("id", orderId);
+  
+    if (statusError) {
+      console.error("Failed to update order status:", statusError.message);
+      alert("Failed to update order status. Please try again.");
+      return;
+    }
+  
+    // Step 4: Cleanup and redirect
+    console.log("Quote submitted and order status updated successfully!");
+    setPrice("");
+    setNotes("");
+    navigate("/dashboard");
   };
+  
 
 
   return (

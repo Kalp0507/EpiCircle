@@ -66,6 +66,7 @@ export interface Order {
   intern_id: string;
   product_ids: string[];
   vendor_ids: string[];
+  status: string;
   created_at: string;
 }
 
